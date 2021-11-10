@@ -566,7 +566,8 @@ func (uconn *UConn) SetTLSVers(minTLSVers, maxTLSVers uint16, specExtensions []T
 	}
 
 	if maxTLSVers < VersionTLS10 || maxTLSVers > VersionTLS13 {
-		return fmt.Errorf("uTLS does not support 0x%X as max version", maxTLSVers)
+		// nate: disable max version check so we can pretend to have GREASE support for some sites
+		// return fmt.Errorf("uTLS does not support 0x%X as max version", maxTLSVers)
 	}
 
 	uconn.HandshakeState.Hello.SupportedVersions = makeSupportedVersions(minTLSVers, maxTLSVers)
