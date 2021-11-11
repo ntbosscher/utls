@@ -7,6 +7,8 @@ package tls
 import (
 	"crypto"
 	"crypto/x509"
+	"encoding/json"
+	"fmt"
 	"hash"
 )
 
@@ -535,6 +537,13 @@ func (fh *finishedHash) getPublicObj() FinishedHash {
 type KeyShare struct {
 	Group CurveID
 	Data  []byte
+}
+
+func (e *KeyShare) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"group": fmt.Sprintf("%02x", e.Group),
+		"data": byteArrayToHex(e.Data),
+	})
 }
 
 type KeyShares []KeyShare

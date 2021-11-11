@@ -5,8 +5,12 @@
 package tls
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"strings"
 )
 
 type TLSExtension interface {
@@ -105,6 +109,48 @@ type SupportedCurvesExtension struct {
 	Curves []CurveID
 }
 
+func (e *SupportedCurvesExtension) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"curves": curveArrayToHex(e.Curves),
+	})
+}
+
+func curveArrayToHex(input []CurveID) string {
+	wr := bytes.NewBuffer(nil)
+	for _, b := range input {
+		wr.WriteString(fmt.Sprintf("%02x ", b))
+	}
+
+	return strings.TrimSpace(wr.String())
+}
+
+func signatureArrayToHex(input []SignatureScheme) string {
+	wr := bytes.NewBuffer(nil)
+	for _, b := range input {
+		wr.WriteString(fmt.Sprintf("%02x ", b))
+	}
+
+	return strings.TrimSpace(wr.String())
+}
+
+func uint8ArrayToHex(input []uint8) string {
+	wr := bytes.NewBuffer(nil)
+	for _, b := range input {
+		wr.WriteString(fmt.Sprintf("%02x ", b))
+	}
+
+	return strings.TrimSpace(wr.String())
+}
+
+func uint16ArrayToHex(input []uint16) string {
+	wr := bytes.NewBuffer(nil)
+	for _, b := range input {
+		wr.WriteString(fmt.Sprintf("%02x ", b))
+	}
+
+	return strings.TrimSpace(wr.String())
+}
+
 func (e *SupportedCurvesExtension) writeToUConn(uc *UConn) error {
 	uc.config.CurvePreferences = e.Curves
 	uc.HandshakeState.Hello.SupportedCurves = e.Curves
@@ -137,6 +183,12 @@ type SupportedPointsExtension struct {
 	SupportedPoints []uint8
 }
 
+func (e *SupportedPointsExtension) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"supportedPoints": uint8ArrayToHex(e.SupportedPoints),
+	})
+}
+
 func (e *SupportedPointsExtension) writeToUConn(uc *UConn) error {
 	uc.HandshakeState.Hello.SupportedPoints = e.SupportedPoints
 	return nil
@@ -164,6 +216,12 @@ func (e *SupportedPointsExtension) Read(b []byte) (int, error) {
 
 type SignatureAlgorithmsExtension struct {
 	SupportedSignatureAlgorithms []SignatureScheme
+}
+
+func (e *SignatureAlgorithmsExtension) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"supportedSignatureAlgorithms": signatureArrayToHex(e.SupportedSignatureAlgorithms),
+	})
 }
 
 func (e *SignatureAlgorithmsExtension) writeToUConn(uc *UConn) error {
@@ -346,6 +404,13 @@ type GenericExtension struct {
 	Data []byte
 }
 
+func (e *GenericExtension) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"Id": fmt.Sprintf("%02x", e.Id),
+		"data": byteArrayToHex(e.Data),
+	})
+}
+
 func (e *GenericExtension) writeToUConn(uc *UConn) error {
 	return nil
 }
@@ -421,6 +486,22 @@ const (
 type UtlsGREASEExtension struct {
 	Value uint16
 	Body  []byte // in Chrome first grease has empty body, second grease has a single zero byte
+}
+
+func (e *UtlsGREASEExtension) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"value": fmt.Sprintf("%02x", e.Value),
+		"body": byteArrayToHex(e.Body),
+	})
+}
+
+func byteArrayToHex(input []byte) string {
+	wr := bytes.NewBuffer(nil)
+	for _, b := range input {
+		wr.WriteString(fmt.Sprintf("%02x ", b))
+	}
+
+	return strings.TrimSpace(wr.String())
 }
 
 func (e *UtlsGREASEExtension) writeToUConn(uc *UConn) error {
@@ -565,6 +646,12 @@ type PSKKeyExchangeModesExtension struct {
 	Modes []uint8
 }
 
+func (e *PSKKeyExchangeModesExtension) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"modes": uint8ArrayToHex(e.Modes),
+	})
+}
+
 func (e *PSKKeyExchangeModesExtension) Len() int {
 	return 4 + 1 + len(e.Modes)
 }
@@ -600,6 +687,12 @@ func (e *PSKKeyExchangeModesExtension) writeToUConn(uc *UConn) error {
 
 type SupportedVersionsExtension struct {
 	Versions []uint16
+}
+
+func (e *SupportedVersionsExtension) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"versions": uint16ArrayToHex(e.Versions),
+	})
 }
 
 func (e *SupportedVersionsExtension) writeToUConn(uc *UConn) error {
