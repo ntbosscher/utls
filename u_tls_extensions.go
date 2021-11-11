@@ -118,7 +118,7 @@ func (e *SupportedCurvesExtension) MarshalJSON() ([]byte, error) {
 func curveArrayToHex(input []CurveID) string {
 	wr := bytes.NewBuffer(nil)
 	for _, b := range input {
-		wr.WriteString(fmt.Sprintf("0x%02x ", b))
+		wr.WriteString(fmt.Sprintf("0x%04x ", b))
 	}
 
 	return strings.TrimSpace(wr.String())
