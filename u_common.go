@@ -113,6 +113,8 @@ type ClientHelloSpec struct {
 	CompressionMethods []uint8        // nil => no compression
 	Extensions         []TLSExtension // nil => no extensions
 
+	DebugGreaseValues []uint16
+
 	TLSVersMin uint16 // [1.0-1.3] default: parse from .Extensions, if SupportedVersions ext is not present => 1.0
 	TLSVersMax uint16 // [1.2-1.3] default: parse from .Extensions, if SupportedVersions ext is not present => 1.2
 
@@ -121,6 +123,15 @@ type ClientHelloSpec struct {
 	GetSessionID func(ticket []byte) [32]byte
 
 	// TLSFingerprintLink string // ?? link to tlsfingerprint.io for informational purposes
+}
+
+func (c *ClientHelloSpec) unGREASEUint16(value uint16) uint16 {
+	if isGREASEUint16(value) {
+		c.DebugGreaseValues = append(c.DebugGreaseValues, value)
+		return GREASE_PLACEHOLDER
+	}
+
+	return value
 }
 
 var (
@@ -166,14 +177,6 @@ func isGREASEUint16(v uint16) bool {
 	// First byte is same as second byte
 	// and lowest nibble is 0xa
 	return ((v >> 8) == v&0xff) && v&0xf == 0xa
-}
-
-func unGREASEUint16(v uint16) uint16 {
-	if isGREASEUint16(v) {
-		return GREASE_PLACEHOLDER
-	} else {
-		return v
-	}
 }
 
 // utlsMacSHA384 returns a SHA-384 based MAC. These are only supported in TLS 1.2
