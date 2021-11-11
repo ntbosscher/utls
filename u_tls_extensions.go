@@ -118,7 +118,7 @@ func (e *SupportedCurvesExtension) MarshalJSON() ([]byte, error) {
 func curveArrayToHex(input []CurveID) string {
 	wr := bytes.NewBuffer(nil)
 	for _, b := range input {
-		wr.WriteString(fmt.Sprintf("%02x ", b))
+		wr.WriteString(fmt.Sprintf("0x%02x ", b))
 	}
 
 	return strings.TrimSpace(wr.String())
@@ -127,7 +127,7 @@ func curveArrayToHex(input []CurveID) string {
 func signatureArrayToHex(input []SignatureScheme) string {
 	wr := bytes.NewBuffer(nil)
 	for _, b := range input {
-		wr.WriteString(fmt.Sprintf("%02x ", b))
+		wr.WriteString(fmt.Sprintf("0x%04x ", b))
 	}
 
 	return strings.TrimSpace(wr.String())
@@ -136,7 +136,7 @@ func signatureArrayToHex(input []SignatureScheme) string {
 func uint8ArrayToHex(input []uint8) string {
 	wr := bytes.NewBuffer(nil)
 	for _, b := range input {
-		wr.WriteString(fmt.Sprintf("%02x ", b))
+		wr.WriteString(fmt.Sprintf("0x%02x ", b))
 	}
 
 	return strings.TrimSpace(wr.String())
@@ -145,7 +145,7 @@ func uint8ArrayToHex(input []uint8) string {
 func uint16ArrayToHex(input []uint16) string {
 	wr := bytes.NewBuffer(nil)
 	for _, b := range input {
-		wr.WriteString(fmt.Sprintf("%02x ", b))
+		wr.WriteString(fmt.Sprintf("0x%04x ", b))
 	}
 
 	return strings.TrimSpace(wr.String())
@@ -406,7 +406,7 @@ type GenericExtension struct {
 
 func (e *GenericExtension) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
-		"Id": fmt.Sprintf("%02x", e.Id),
+		"Id": fmt.Sprintf("0x%04x", e.Id),
 		"data": byteArrayToHex(e.Data),
 	})
 }
@@ -490,7 +490,7 @@ type UtlsGREASEExtension struct {
 
 func (e *UtlsGREASEExtension) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
-		"value": fmt.Sprintf("%02x", e.Value),
+		"value": fmt.Sprintf("0x%04x", e.Value),
 		"body": byteArrayToHex(e.Body),
 	})
 }
@@ -498,7 +498,7 @@ func (e *UtlsGREASEExtension) MarshalJSON() ([]byte, error) {
 func byteArrayToHex(input []byte) string {
 	wr := bytes.NewBuffer(nil)
 	for _, b := range input {
-		wr.WriteString(fmt.Sprintf("%02x ", b))
+		wr.WriteString(fmt.Sprintf("0x%02x ", b))
 	}
 
 	return strings.TrimSpace(wr.String())

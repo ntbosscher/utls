@@ -541,7 +541,7 @@ type KeyShare struct {
 
 func (e *KeyShare) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
-		"group": fmt.Sprintf("%02x", e.Group),
+		"group": fmt.Sprintf("0x%04x", e.Group),
 		"data": byteArrayToHex(e.Data),
 	})
 }
