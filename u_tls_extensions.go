@@ -657,7 +657,7 @@ func (e *UtlsGREASEExtension) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	ext.Body, err = parseHexBytes(val["value"])
+	ext.Body, err = parseHexBytes(val["body"])
 	if err != nil {
 		return err
 	}
