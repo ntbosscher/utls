@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -115,6 +116,24 @@ func (e *SupportedCurvesExtension) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (e *SupportedCurvesExtension) UnmarshalJSON(b []byte) error {
+	val := map[string]string{}
+	err := json.Unmarshal(b, &val)
+	if err != nil {
+		return err
+	}
+
+	ext := SupportedCurvesExtension{}
+	ext.Curves, err = parseCurveArray(val["curves"])
+	if err != nil {
+		return err
+	}
+
+	*e = ext
+
+	return nil
+}
+
 func curveArrayToHex(input []CurveID) string {
 	wr := bytes.NewBuffer(nil)
 	for _, b := range input {
@@ -122,6 +141,28 @@ func curveArrayToHex(input []CurveID) string {
 	}
 
 	return strings.TrimSpace(wr.String())
+}
+
+func parseCurveId(input string) (CurveID, error) {
+	val, err := parseUint16(input)
+	return CurveID(val), err
+}
+
+func parseCurveArray(input string) ([]CurveID, error) {
+
+	parts := strings.Split(input, " ")
+	out := []CurveID{}
+
+	for _, b := range parts {
+		val, err := parseCurveId(b)
+		if err != nil {
+			return nil, err
+		}
+
+		out = append(out, val)
+	}
+
+	return out, nil
 }
 
 func signatureArrayToHex(input []SignatureScheme) string {
@@ -133,6 +174,22 @@ func signatureArrayToHex(input []SignatureScheme) string {
 	return strings.TrimSpace(wr.String())
 }
 
+func parseSignatures(input string) ([]SignatureScheme, error) {
+	parts := strings.Split(input, " ")
+	out := []SignatureScheme{}
+
+	for _, part := range parts {
+		val, err := parseUint16(part)
+		if err != nil {
+			return nil, err
+		}
+
+		out = append(out, SignatureScheme(val))
+	}
+
+	return out, nil
+}
+
 func uint8ArrayToHex(input []uint8) string {
 	wr := bytes.NewBuffer(nil)
 	for _, b := range input {
@@ -142,6 +199,23 @@ func uint8ArrayToHex(input []uint8) string {
 	return strings.TrimSpace(wr.String())
 }
 
+func parseUint8s(input string) ([]uint8, error) {
+	parts := strings.Split(input, " ")
+	out := []uint8{}
+
+	for _, item := range parts {
+		item = strings.TrimPrefix(item, "0x")
+		u, err := strconv.ParseUint(item, 16, 8)
+		if err != nil {
+			return nil, err
+		}
+
+		out = append(out, uint8(u))
+	}
+
+	return out, nil
+}
+
 func uint16ArrayToHex(input []uint16) string {
 	wr := bytes.NewBuffer(nil)
 	for _, b := range input {
@@ -149,6 +223,21 @@ func uint16ArrayToHex(input []uint16) string {
 	}
 
 	return strings.TrimSpace(wr.String())
+}
+
+func parseUint16s(input string) ([]uint16, error) {
+	list := []uint16{}
+
+	for _, item := range strings.Split(input, " ") {
+		u, err := parseUint16(item)
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, u)
+	}
+
+	return list, nil
 }
 
 func (e *SupportedCurvesExtension) writeToUConn(uc *UConn) error {
@@ -189,6 +278,24 @@ func (e *SupportedPointsExtension) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (e *SupportedPointsExtension) UnmarshalJSON(b []byte) error {
+	val := map[string]string{}
+	err := json.Unmarshal(b, &val)
+	if err != nil {
+		return err
+	}
+
+	ext := SupportedPointsExtension{}
+	ext.SupportedPoints, err = parseUint8s(val["supportedPoints"])
+	if err != nil {
+		return err
+	}
+
+	*e = ext
+
+	return nil
+}
+
 func (e *SupportedPointsExtension) writeToUConn(uc *UConn) error {
 	uc.HandshakeState.Hello.SupportedPoints = e.SupportedPoints
 	return nil
@@ -222,6 +329,24 @@ func (e *SignatureAlgorithmsExtension) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"supportedSignatureAlgorithms": signatureArrayToHex(e.SupportedSignatureAlgorithms),
 	})
+}
+
+func (e *SignatureAlgorithmsExtension) UnmarshalJSON(b []byte) error {
+	val := map[string]string{}
+	err := json.Unmarshal(b, &val)
+	if err != nil {
+		return err
+	}
+
+	ext := SignatureAlgorithmsExtension{}
+	ext.SupportedSignatureAlgorithms, err = parseSignatures(val["supportedSignatureAlgorithms"])
+	if err != nil {
+		return err
+	}
+
+	*e = ext
+
+	return nil
 }
 
 func (e *SignatureAlgorithmsExtension) writeToUConn(uc *UConn) error {
@@ -411,6 +536,29 @@ func (e *GenericExtension) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (e *GenericExtension) UnmarshalJSON(b []byte) error {
+	val := map[string]string{}
+	err := json.Unmarshal(b, &val)
+	if err != nil {
+		return err
+	}
+
+	ext := GenericExtension{}
+	ext.Id, err = parseUint16(val["Id"])
+	if err != nil {
+		return err
+	}
+
+	ext.Data, err = parseHexBytes(val["data"])
+	if err != nil {
+		return err
+	}
+
+	*e = ext
+
+	return nil
+}
+
 func (e *GenericExtension) writeToUConn(uc *UConn) error {
 	return nil
 }
@@ -493,6 +641,55 @@ func (e *UtlsGREASEExtension) MarshalJSON() ([]byte, error) {
 		"value": fmt.Sprintf("0x%04x", e.Value),
 		"body": byteArrayToHex(e.Body),
 	})
+}
+
+func (e *UtlsGREASEExtension) UnmarshalJSON(b []byte) error {
+
+	val := map[string]string{}
+	err := json.Unmarshal(b, &val)
+	if err != nil {
+		return err
+	}
+
+	ext := UtlsGREASEExtension{}
+	ext.Value, err = parseUint16(val["value"])
+	if err != nil {
+		return err
+	}
+
+	ext.Body, err = parseHexBytes(val["value"])
+	if err != nil {
+		return err
+	}
+
+	*e = ext
+
+	return nil
+}
+
+func parseUint16(input string) (uint16, error) {
+	input = strings.TrimPrefix(input, "0x")
+
+	val, err := strconv.ParseUint(input, 16, 8)
+	return uint16(val), err
+}
+
+func parseHexBytes(input string) ([]byte, error) {
+	parts := strings.Split(input, " ")
+	result := make([]byte, 0, len(parts))
+
+	for _, part := range parts {
+		part = strings.TrimPrefix(part, "0x")
+
+		val, err := strconv.ParseUint(part, 16, 8)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, byte(val))
+	}
+
+	return result, nil
 }
 
 func byteArrayToHex(input []byte) string {
@@ -652,6 +849,24 @@ func (e *PSKKeyExchangeModesExtension) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (e *PSKKeyExchangeModesExtension) UnmarshalJSON(b []byte) error {
+	val := map[string]string{}
+	err := json.Unmarshal(b, &val)
+	if err != nil {
+		return err
+	}
+
+	ext := PSKKeyExchangeModesExtension{}
+	ext.Modes, err = parseUint8s(val["modes"])
+	if err != nil {
+		return err
+	}
+
+	*e = ext
+
+	return nil
+}
+
 func (e *PSKKeyExchangeModesExtension) Len() int {
 	return 4 + 1 + len(e.Modes)
 }
@@ -693,6 +908,24 @@ func (e *SupportedVersionsExtension) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"versions": uint16ArrayToHex(e.Versions),
 	})
+}
+
+func (e *SupportedVersionsExtension) UnmarshalJSON(b []byte) error {
+	val := map[string]string{}
+	err := json.Unmarshal(b, &val)
+	if err != nil {
+		return err
+	}
+
+	ext := SupportedVersionsExtension{}
+	ext.Versions, err = parseUint16s(val["versions"])
+	if err != nil {
+		return err
+	}
+
+	*e = ext
+
+	return nil
 }
 
 func (e *SupportedVersionsExtension) writeToUConn(uc *UConn) error {

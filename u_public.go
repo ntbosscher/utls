@@ -546,6 +546,29 @@ func (e *KeyShare) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (e *KeyShare) UnmarshalJSON(b []byte) error {
+	val := map[string]string{}
+	err := json.Unmarshal(b, &val)
+	if err != nil {
+		return err
+	}
+
+	ext := KeyShare{}
+	ext.Group, err = parseCurveId(val["group"])
+	if err != nil {
+		return err
+	}
+
+	ext.Data, err = parseHexBytes(val["data"])
+	if err != nil {
+		return err
+	}
+
+	*e = ext
+
+	return nil
+}
+
 type KeyShares []KeyShare
 type keyShares []keyShare
 
