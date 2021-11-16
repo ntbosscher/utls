@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"crypto/subtle"
+	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -1379,11 +1380,11 @@ func (c *Conn) Handshake() error {
 }
 
 // ConnectionState returns basic TLS details about the connection.
-func (c *Conn) ConnectionState() ConnectionState {
+func (c *Conn) ConnectionState() tls.ConnectionState {
 	c.handshakeMutex.Lock()
 	defer c.handshakeMutex.Unlock()
 
-	var state ConnectionState
+	var state tls.ConnectionState
 	state.HandshakeComplete = c.handshakeComplete()
 	state.ServerName = c.serverName
 
@@ -1404,11 +1405,12 @@ func (c *Conn) ConnectionState() ConnectionState {
 				state.TLSUnique = c.serverFinished[:]
 			}
 		}
-		if c.config.Renegotiation != RenegotiateNever {
-			state.ekm = noExportedKeyingMaterial
-		} else {
-			state.ekm = c.ekm
-		}
+		// disable to allow tls.ConnectionState to be returned
+		//if c.config.Renegotiation != RenegotiateNever {
+		//	state.ekm = noExportedKeyingMaterial
+		//} else {
+		//	state.ekm = c.ekm
+		//}
 	}
 
 	return state
