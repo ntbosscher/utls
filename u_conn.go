@@ -7,6 +7,7 @@ package tls
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/cipher"
 	"encoding/binary"
 	"errors"
@@ -185,6 +186,11 @@ func (uconn *UConn) removeSNIExtension() {
 		}
 	}
 	uconn.Extensions = filteredExts
+}
+
+func (c *UConn) HandshakeContext(ctx context.Context) error {
+	// ignore context for now
+	return c.Handshake()
 }
 
 // Handshake runs the client handshake using given clientHandshakeState
