@@ -675,6 +675,10 @@ func parseUint16(input string) (uint16, error) {
 }
 
 func parseHexBytes(input string) ([]byte, error) {
+	if input == "" {
+		return nil, nil
+	}
+
 	parts := strings.Split(input, " ")
 	result := make([]byte, 0, len(parts))
 
