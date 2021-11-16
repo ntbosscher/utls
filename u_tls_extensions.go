@@ -22,10 +22,18 @@ type TLSExtension interface {
 	// Read reads up to len(p) bytes into p.
 	// It returns the number of bytes read (0 <= n <= len(p)) and any error encountered.
 	Read(p []byte) (n int, err error) // implements io.Reader
+
+	Clone() TLSExtension
 }
 
 type NPNExtension struct {
 	NextProtos []string
+}
+
+func (e *NPNExtension) Clone() TLSExtension {
+	return &NPNExtension {
+		NextProtos: append([]string{}, e.NextProtos...),
+	}
 }
 
 func (e *NPNExtension) writeToUConn(uc *UConn) error {
@@ -50,6 +58,12 @@ func (e *NPNExtension) Read(b []byte) (int, error) {
 
 type SNIExtension struct {
 	ServerName string // not an array because go crypto/tls doesn't support multiple SNIs
+}
+
+func (e *SNIExtension) Clone() TLSExtension {
+	return &SNIExtension{
+		ServerName: e.ServerName,
+	}
 }
 
 func (e *SNIExtension) writeToUConn(uc *UConn) error {
@@ -83,6 +97,10 @@ func (e *SNIExtension) Read(b []byte) (int, error) {
 type StatusRequestExtension struct {
 }
 
+func (e *StatusRequestExtension) Clone() TLSExtension {
+	return &StatusRequestExtension{}
+}
+
 func (e *StatusRequestExtension) writeToUConn(uc *UConn) error {
 	uc.HandshakeState.Hello.OcspStapling = true
 	return nil
@@ -108,6 +126,12 @@ func (e *StatusRequestExtension) Read(b []byte) (int, error) {
 
 type SupportedCurvesExtension struct {
 	Curves []CurveID
+}
+
+func (e *SupportedCurvesExtension) Clone() TLSExtension {
+	return &SupportedCurvesExtension{
+		Curves: append([]CurveID{}, e.Curves...),
+	}
 }
 
 func (e *SupportedCurvesExtension) MarshalJSON() ([]byte, error) {
@@ -272,6 +296,12 @@ type SupportedPointsExtension struct {
 	SupportedPoints []uint8
 }
 
+func (e *SupportedPointsExtension) Clone() TLSExtension {
+	return &SupportedPointsExtension{
+		SupportedPoints: append([]uint8{}, e.SupportedPoints...),
+	}
+}
+
 func (e *SupportedPointsExtension) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
 		"supportedPoints": uint8ArrayToHex(e.SupportedPoints),
@@ -323,6 +353,12 @@ func (e *SupportedPointsExtension) Read(b []byte) (int, error) {
 
 type SignatureAlgorithmsExtension struct {
 	SupportedSignatureAlgorithms []SignatureScheme
+}
+
+func (e *SignatureAlgorithmsExtension) Clone() TLSExtension {
+	return &SignatureAlgorithmsExtension{
+		SupportedSignatureAlgorithms: append([]SignatureScheme{}, e.SupportedSignatureAlgorithms...),
+	}
 }
 
 func (e *SignatureAlgorithmsExtension) MarshalJSON() ([]byte, error) {
@@ -382,6 +418,12 @@ type RenegotiationInfoExtension struct {
 	Renegotiation RenegotiationSupport
 }
 
+func (e *RenegotiationInfoExtension) Clone() TLSExtension {
+	return &RenegotiationInfoExtension{
+		Renegotiation: e.Renegotiation,
+	}
+}
+
 func (e *RenegotiationInfoExtension) writeToUConn(uc *UConn) error {
 	uc.config.Renegotiation = e.Renegotiation
 	switch e.Renegotiation {
@@ -420,6 +462,12 @@ func (e *RenegotiationInfoExtension) Read(b []byte) (int, error) {
 
 type ALPNExtension struct {
 	AlpnProtocols []string
+}
+
+func (e *ALPNExtension) Clone() TLSExtension {
+	return &ALPNExtension{
+		AlpnProtocols: append([]string{}, e.AlpnProtocols...),
+	}
 }
 
 func (e *ALPNExtension) writeToUConn(uc *UConn) error {
@@ -467,6 +515,10 @@ func (e *ALPNExtension) Read(b []byte) (int, error) {
 type SCTExtension struct {
 }
 
+func (e *SCTExtension) Clone() TLSExtension {
+	return &SCTExtension{}
+}
+
 func (e *SCTExtension) writeToUConn(uc *UConn) error {
 	uc.HandshakeState.Hello.Scts = true
 	return nil
@@ -489,6 +541,12 @@ func (e *SCTExtension) Read(b []byte) (int, error) {
 
 type SessionTicketExtension struct {
 	Session *ClientSessionState
+}
+
+func (e *SessionTicketExtension) Clone() TLSExtension {
+	return &SessionTicketExtension{
+			Session: nil,
+	}
 }
 
 func (e *SessionTicketExtension) writeToUConn(uc *UConn) error {
@@ -527,6 +585,13 @@ func (e *SessionTicketExtension) Read(b []byte) (int, error) {
 type GenericExtension struct {
 	Id   uint16
 	Data []byte
+}
+
+func (e *GenericExtension) Clone() TLSExtension {
+	return &GenericExtension{
+		Id: e.Id,
+		Data: append([]byte{}, e.Data...),
+	}
 }
 
 func (e *GenericExtension) MarshalJSON() ([]byte, error) {
@@ -585,6 +650,10 @@ func (e *GenericExtension) Read(b []byte) (int, error) {
 type UtlsExtendedMasterSecretExtension struct {
 }
 
+func (e *UtlsExtendedMasterSecretExtension) Clone() TLSExtension {
+	return &UtlsExtendedMasterSecretExtension{}
+}
+
 // TODO: update when this extension is implemented in crypto/tls
 // but we probably won't have to enable it in Config
 func (e *UtlsExtendedMasterSecretExtension) writeToUConn(uc *UConn) error {
@@ -634,6 +703,13 @@ const (
 type UtlsGREASEExtension struct {
 	Value uint16
 	Body  []byte // in Chrome first grease has empty body, second grease has a single zero byte
+}
+
+func (e *UtlsGREASEExtension) Clone() TLSExtension {
+	return &UtlsGREASEExtension{
+		Value: e.Value,
+		Body: append([]byte{}, e.Body...),
+	}
 }
 
 func (e *UtlsGREASEExtension) MarshalJSON() ([]byte, error) {
@@ -748,6 +824,14 @@ type UtlsPaddingExtension struct {
 	GetPaddingLen func(clientHelloUnpaddedLen int) (paddingLen int, willPad bool)
 }
 
+func (e *UtlsPaddingExtension) Clone() TLSExtension {
+	return &UtlsPaddingExtension{
+		PaddingLen: e.PaddingLen,
+		WillPad: e.WillPad,
+		GetPaddingLen: e.GetPaddingLen,
+	}
+}
+
 func (e *UtlsPaddingExtension) writeToUConn(uc *UConn) error {
 	return nil
 }
@@ -800,6 +884,12 @@ type KeyShareExtension struct {
 	KeyShares []KeyShare
 }
 
+func (e *KeyShareExtension) Clone() TLSExtension {
+	return &KeyShareExtension{
+		KeyShares: append([]KeyShare{}, e.KeyShares...),
+	}
+}
+
 func (e *KeyShareExtension) Len() int {
 	return 4 + 2 + e.keySharesLen()
 }
@@ -845,6 +935,12 @@ func (e *KeyShareExtension) writeToUConn(uc *UConn) error {
 
 type PSKKeyExchangeModesExtension struct {
 	Modes []uint8
+}
+
+func (e *PSKKeyExchangeModesExtension) Clone() TLSExtension {
+	return &PSKKeyExchangeModesExtension{
+		Modes: append([]uint8{}, e.Modes...),
+	}
 }
 
 func (e *PSKKeyExchangeModesExtension) MarshalJSON() ([]byte, error) {
@@ -906,6 +1002,12 @@ func (e *PSKKeyExchangeModesExtension) writeToUConn(uc *UConn) error {
 
 type SupportedVersionsExtension struct {
 	Versions []uint16
+}
+
+func (e *SupportedVersionsExtension) Clone() TLSExtension {
+	return &SupportedVersionsExtension{
+		Versions: append([]uint16{}, e.Versions...),
+	}
 }
 
 func (e *SupportedVersionsExtension) MarshalJSON() ([]byte, error) {
@@ -970,6 +1072,12 @@ type CookieExtension struct {
 	Cookie []byte
 }
 
+func (e *CookieExtension) Clone() TLSExtension {
+	return &CookieExtension{
+		Cookie: append([]byte{}, e.Cookie...),
+	}
+}
+
 func (e *CookieExtension) writeToUConn(uc *UConn) error {
 	return nil
 }
@@ -1000,6 +1108,10 @@ FAKE EXTENSIONS
 type FakeChannelIDExtension struct {
 }
 
+func (e *FakeChannelIDExtension) Clone() TLSExtension {
+	return &FakeChannelIDExtension{}
+}
+
 func (e *FakeChannelIDExtension) writeToUConn(uc *UConn) error {
 	return nil
 }
@@ -1021,6 +1133,12 @@ func (e *FakeChannelIDExtension) Read(b []byte) (int, error) {
 
 type FakeCertCompressionAlgsExtension struct {
 	Methods []CertCompressionAlgo
+}
+
+func (e *FakeCertCompressionAlgsExtension) Clone() TLSExtension {
+	return &FakeCertCompressionAlgsExtension{
+		Methods: append([]CertCompressionAlgo{}, e.Methods...),
+	}
 }
 
 func (e *FakeCertCompressionAlgsExtension) writeToUConn(uc *UConn) error {
@@ -1059,6 +1177,12 @@ func (e *FakeCertCompressionAlgsExtension) Read(b []byte) (int, error) {
 
 type FakeRecordSizeLimitExtension struct {
 	Limit uint16
+}
+
+func (e *FakeRecordSizeLimitExtension) Clone() TLSExtension {
+	return &FakeRecordSizeLimitExtension{
+		Limit: e.Limit,
+	}
 }
 
 func (e *FakeRecordSizeLimitExtension) writeToUConn(uc *UConn) error {
