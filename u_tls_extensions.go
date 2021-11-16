@@ -670,7 +670,7 @@ func (e *UtlsGREASEExtension) UnmarshalJSON(b []byte) error {
 func parseUint16(input string) (uint16, error) {
 	input = strings.TrimPrefix(input, "0x")
 
-	val, err := strconv.ParseUint(input, 16, 8)
+	val, err := strconv.ParseUint(input, 16, 16)
 	return uint16(val), err
 }
 
