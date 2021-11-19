@@ -11,6 +11,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
+	"crypto/tls"
 	"errors"
 	"golang.org/x/crypto/cryptobyte"
 	"io"
@@ -114,7 +115,7 @@ type sessionStateTLS13 struct {
 	cipherSuite      uint16
 	createdAt        uint64
 	resumptionSecret []byte      // opaque resumption_master_secret<1..2^8-1>;
-	certificate      Certificate // CertificateEntry certificate_list<0..2^24-1>;
+	certificate      tls.Certificate // CertificateEntry certificate_list<0..2^24-1>;
 }
 
 func (m *sessionStateTLS13) marshal() []byte {

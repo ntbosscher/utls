@@ -9,6 +9,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/subtle"
+	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -30,7 +31,7 @@ type serverHandshakeState struct {
 	sessionState *sessionState
 	finishedHash finishedHash
 	masterSecret []byte
-	cert         *Certificate
+	cert         *tls.Certificate
 }
 
 // serverHandshake performs a TLS handshake as a server.
@@ -369,7 +370,7 @@ func (hs *serverHandshakeState) checkForResumption() bool {
 	if needClientCerts && !sessionHasClientCerts {
 		return false
 	}
-	if sessionHasClientCerts && c.config.ClientAuth == NoClientCert {
+	if sessionHasClientCerts && c.config.ClientAuth == tls.NoClientCert {
 		return false
 	}
 
@@ -392,7 +393,7 @@ func (hs *serverHandshakeState) doResumeHandshake() error {
 		return err
 	}
 
-	if err := c.processCertsFromClient(Certificate{
+	if err := c.processCertsFromClient(tls.Certificate{
 		Certificate: hs.sessionState.certificates,
 	}); err != nil {
 		return err
@@ -414,7 +415,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	hs.hello.cipherSuite = hs.suite.id
 
 	hs.finishedHash = newFinishedHash(hs.c.vers, hs.suite)
-	if c.config.ClientAuth == NoClientCert {
+	if c.config.ClientAuth == tls.NoClientCert {
 		// No need to keep a full record of the handshake if client
 		// certificates won't be used.
 		hs.finishedHash.discardHandshakeBuffer()
@@ -454,7 +455,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		}
 	}
 
-	if c.config.ClientAuth >= RequestClientCert {
+	if c.config.ClientAuth >= tls.RequestClientCert {
 		// Request a client certificate
 		certReq := new(certificateRequestMsg)
 		certReq.certificateTypes = []byte{
@@ -499,7 +500,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 
 	// If we requested a client certificate, then the client must send a
 	// certificate message, even if it's empty.
-	if c.config.ClientAuth >= RequestClientCert {
+	if c.config.ClientAuth >= tls.RequestClientCert {
 		certMsg, ok := msg.(*certificateMsg)
 		if !ok {
 			c.sendAlert(alertUnexpectedMessage)
@@ -507,7 +508,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		}
 		hs.finishedHash.Write(certMsg.marshal())
 
-		if err := c.processCertsFromClient(Certificate{
+		if err := c.processCertsFromClient(tls.Certificate{
 			Certificate: certMsg.certificates,
 		}); err != nil {
 			return err
@@ -705,7 +706,7 @@ func (hs *serverHandshakeState) sendFinished(out []byte) error {
 // processCertsFromClient takes a chain of client certificates either from a
 // Certificates message or from a sessionState and verifies them. It returns
 // the public key of the leaf certificate.
-func (c *Conn) processCertsFromClient(certificate Certificate) error {
+func (c *Conn) processCertsFromClient(certificate tls.Certificate) error {
 	certificates := certificate.Certificate
 	certs := make([]*x509.Certificate, len(certificates))
 	var err error
@@ -721,7 +722,7 @@ func (c *Conn) processCertsFromClient(certificate Certificate) error {
 		return errors.New("tls: client didn't provide a certificate")
 	}
 
-	if c.config.ClientAuth >= VerifyClientCertIfGiven && len(certs) > 0 {
+	if c.config.ClientAuth >= tls.VerifyClientCertIfGiven && len(certs) > 0 {
 		opts := x509.VerifyOptions{
 			Roots:         c.config.ClientCAs,
 			CurrentTime:   c.config.time(),

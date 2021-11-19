@@ -5,6 +5,7 @@
 package tls
 
 import (
+	"crypto/tls"
 	"fmt"
 	"golang.org/x/crypto/cryptobyte"
 	"strings"
@@ -1302,7 +1303,7 @@ func (m *certificateMsg) unmarshal(data []byte) bool {
 
 type certificateMsgTLS13 struct {
 	raw          []byte
-	certificate  Certificate
+	certificate  tls.Certificate
 	ocspStapling bool
 	scts         bool
 }
@@ -1331,7 +1332,7 @@ func (m *certificateMsgTLS13) marshal() []byte {
 	return m.raw
 }
 
-func marshalCertificate(b *cryptobyte.Builder, certificate Certificate) {
+func marshalCertificate(b *cryptobyte.Builder, certificate tls.Certificate) {
 	b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
 		for i, cert := range certificate.Certificate {
 			b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
@@ -1386,7 +1387,7 @@ func (m *certificateMsgTLS13) unmarshal(data []byte) bool {
 	return true
 }
 
-func unmarshalCertificate(s *cryptobyte.String, certificate *Certificate) bool {
+func unmarshalCertificate(s *cryptobyte.String, certificate *tls.Certificate) bool {
 	var certList cryptobyte.String
 	if !s.ReadUint24LengthPrefixed(&certList) {
 		return false

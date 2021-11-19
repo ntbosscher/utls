@@ -9,6 +9,7 @@ import (
 	"crypto"
 	"crypto/hmac"
 	"crypto/rsa"
+	"crypto/tls"
 	"errors"
 	"hash"
 	"io"
@@ -28,7 +29,7 @@ type serverHandshakeStateTLS13 struct {
 	sentDummyCCS    bool
 	usingPSK        bool
 	suite           *cipherSuiteTLS13
-	cert            *Certificate
+	cert            *tls.Certificate
 	sigAlg          SignatureScheme
 	earlySecret     []byte
 	sharedKey       []byte
@@ -285,7 +286,7 @@ func (hs *serverHandshakeStateTLS13) checkForResumption() error {
 		if needClientCerts && !sessionHasClientCerts {
 			continue
 		}
-		if sessionHasClientCerts && c.config.ClientAuth == NoClientCert {
+		if sessionHasClientCerts && c.config.ClientAuth == tls.NoClientCert {
 			continue
 		}
 
@@ -579,7 +580,7 @@ func (hs *serverHandshakeStateTLS13) sendServerParameters() error {
 }
 
 func (hs *serverHandshakeStateTLS13) requestClientCert() bool {
-	return hs.c.config.ClientAuth >= RequestClientCert && !hs.usingPSK
+	return hs.c.config.ClientAuth >= tls.RequestClientCert && !hs.usingPSK
 }
 
 func (hs *serverHandshakeStateTLS13) sendServerCertificate() error {
@@ -742,7 +743,7 @@ func (hs *serverHandshakeStateTLS13) sendSessionTickets() error {
 		cipherSuite:      hs.suite.id,
 		createdAt:        uint64(c.config.time().Unix()),
 		resumptionSecret: resumptionSecret,
-		certificate: Certificate{
+		certificate: tls.Certificate{
 			Certificate:                 certsFromClient,
 			OCSPStaple:                  c.ocspResponse,
 			SignedCertificateTimestamps: c.scts,

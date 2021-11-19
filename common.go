@@ -6,9 +6,9 @@ package tls
 
 import (
 	"container/list"
-	"crypto"
 	"crypto/rand"
 	"crypto/sha512"
+	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -24,11 +24,14 @@ import (
 )
 
 const (
-	VersionSSL30 = 0x0300
 	VersionTLS10 = 0x0301
 	VersionTLS11 = 0x0302
 	VersionTLS12 = 0x0303
 	VersionTLS13 = 0x0304
+
+	// Deprecated: SSLv3 is cryptographically broken, and is no longer
+	// supported by this package. See golang.org/issue/32716.
+	VersionSSL30 = 0x0300
 )
 
 const (
@@ -150,7 +153,7 @@ const (
 // Certificate types (for certificateRequestMsg)
 const (
 	certTypeRSASign   = 1
-	certTypeECDSASign = 64 // RFC 4492, Section 5.5
+	certTypeECDSASign = 64 // ECDSA or EdDSA keys, see RFC 8422, Section 3.
 )
 
 // Signature algorithms (for internal signaling use). Starting at 16 to avoid overlap with
@@ -230,23 +233,11 @@ func (cs *ConnectionState) ExportKeyingMaterial(label string, context []byte, le
 	return cs.ekm(label, context, length)
 }
 
-// ClientAuthType declares the policy the server will follow for
-// TLS Client Authentication.
-type ClientAuthType int
-
-const (
-	NoClientCert ClientAuthType = iota
-	RequestClientCert
-	RequireAnyClientCert
-	VerifyClientCertIfGiven
-	RequireAndVerifyClientCert
-)
-
 // requiresClientCert reports whether the ClientAuthType requires a client
 // certificate to be provided.
-func requiresClientCert(c ClientAuthType) bool {
+func requiresClientCert(c tls.ClientAuthType) bool {
 	switch c {
-	case RequireAnyClientCert, RequireAndVerifyClientCert:
+	case tls.RequireAnyClientCert, tls.RequireAndVerifyClientCert:
 		return true
 	default:
 		return false
@@ -424,7 +415,7 @@ type Config struct {
 	// at least one certificate or else set GetCertificate. Clients doing
 	// client-authentication may set either Certificates or
 	// GetClientCertificate.
-	Certificates []Certificate
+	Certificates []tls.Certificate
 
 	// NameToCertificate maps from a certificate name to an element of
 	// Certificates. Note that a certificate name can be of the form
@@ -432,7 +423,7 @@ type Config struct {
 	// See Config.BuildNameToCertificate
 	// The nil value causes the first element of Certificates to be used
 	// for all connections.
-	NameToCertificate map[string]*Certificate
+	NameToCertificate map[string]*tls.Certificate
 
 	// GetCertificate returns a Certificate based on the given
 	// ClientHelloInfo. It will only be called if the client supplies SNI
@@ -441,7 +432,7 @@ type Config struct {
 	// If GetCertificate is nil or returns nil, then the certificate is
 	// retrieved from NameToCertificate. If NameToCertificate is nil, the
 	// first element of Certificates will be used.
-	GetCertificate func(*ClientHelloInfo) (*Certificate, error)
+	GetCertificate func(*ClientHelloInfo) (*tls.Certificate, error)
 
 	// GetClientCertificate, if not nil, is called when a server requests a
 	// certificate from a client. If set, the contents of Certificates will
@@ -456,7 +447,7 @@ type Config struct {
 	//
 	// GetClientCertificate may be called multiple times for the same
 	// connection if renegotiation occurs or if TLS 1.3 is in use.
-	GetClientCertificate func(*CertificateRequestInfo) (*Certificate, error)
+	GetClientCertificate func(*CertificateRequestInfo) (*tls.Certificate, error)
 
 	// GetConfigForClient, if not nil, is called after a ClientHello is
 	// received from a client. It may return a non-nil Config in order to
@@ -508,7 +499,7 @@ type Config struct {
 
 	// ClientAuth determines the server's policy for
 	// TLS Client Authentication. The default is NoClientCert.
-	ClientAuth ClientAuthType
+	ClientAuth tls.ClientAuthType
 
 	// ClientCAs defines the set of root certificate authorities
 	// that servers use if required to verify a client certificate
@@ -871,7 +862,7 @@ func (c *Config) mutualVersion(isClient bool, peerVersions []uint16) (uint16, bo
 
 // getCertificate returns the best certificate for the given ClientHelloInfo,
 // defaulting to the first element of c.Certificates.
-func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*Certificate, error) {
+func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*tls.Certificate, error) {
 	if c.GetCertificate != nil &&
 		(len(c.Certificates) == 0 || len(clientHello.ServerName) > 0) {
 		cert, err := c.GetCertificate(clientHello)
@@ -917,7 +908,7 @@ func (c *Config) getCertificate(clientHello *ClientHelloInfo) (*Certificate, err
 // from the CommonName and SubjectAlternateName fields of each of the leaf
 // certificates.
 func (c *Config) BuildNameToCertificate() {
-	c.NameToCertificate = make(map[string]*Certificate)
+	c.NameToCertificate = make(map[string]*tls.Certificate)
 	for i := range c.Certificates {
 		cert := &c.Certificates[i]
 		x509Cert := cert.Leaf
@@ -963,26 +954,7 @@ func (c *Config) writeKeyLog(label string, clientRandom, secret []byte) error {
 // and is only for debugging, so a global mutex saves space.
 var writerMutex sync.Mutex
 
-// A Certificate is a chain of one or more certificates, leaf first.
-type Certificate struct {
-	Certificate [][]byte
-	// PrivateKey contains the private key corresponding to the public key in
-	// Leaf. This must implement crypto.Signer with an RSA or ECDSA PublicKey.
-	// For a server up to TLS 1.2, it can also implement crypto.Decrypter with
-	// an RSA PublicKey.
-	PrivateKey crypto.PrivateKey
-	// OCSPStaple contains an optional OCSP response which will be served
-	// to clients that request it.
-	OCSPStaple []byte
-	// SignedCertificateTimestamps contains an optional list of Signed
-	// Certificate Timestamps which will be served to clients that request it.
-	SignedCertificateTimestamps [][]byte
-	// Leaf is the parsed form of the leaf certificate, which may be
-	// initialized using x509.ParseCertificate to reduce per-handshake
-	// processing for TLS clients doing client authentication. If nil, the
-	// leaf certificate will be parsed as needed.
-	Leaf *x509.Certificate
-}
+// using original tls.Certificate
 
 type handshakeMessage interface {
 	marshal() []byte

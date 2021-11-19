@@ -10,6 +10,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/subtle"
+	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -513,7 +514,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		}
 	}
 
-	var chainToSend *Certificate
+	var chainToSend *tls.Certificate
 	var certRequested bool
 	certReq, ok := msg.(*certificateRequestMsg)
 	if ok {
@@ -925,7 +926,7 @@ func certificateRequestInfoFromMsg(certReq *certificateRequestMsg) *CertificateR
 	return cri
 }
 
-func (c *Conn) getClientCertificate(cri *CertificateRequestInfo) (*Certificate, error) {
+func (c *Conn) getClientCertificate(cri *CertificateRequestInfo) (*tls.Certificate, error) {
 	if c.config.GetClientCertificate != nil {
 		return c.config.GetClientCertificate(cri)
 	}
@@ -970,7 +971,7 @@ func (c *Conn) getClientCertificate(cri *CertificateRequestInfo) (*Certificate, 
 	}
 
 	// No acceptable certificate found. Don't send a certificate.
-	return new(Certificate), nil
+	return new(tls.Certificate), nil
 }
 
 // clientSessionCacheKey returns a key used to cache sessionTickets that could
