@@ -6,6 +6,7 @@ package tls
 
 import (
 	"crypto"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
@@ -253,7 +254,7 @@ type ServerHelloMsg struct {
 	SelectedIdentityPresent bool
 	SelectedIdentity        uint16
 	Cookie                  []byte  // HelloRetryRequest extension
-	SelectedGroup           CurveID // HelloRetryRequest extension
+	SelectedGroup           tls.CurveID // HelloRetryRequest extension
 
 }
 
@@ -329,7 +330,7 @@ type ClientHelloMsg struct {
 	OcspStapling                 bool
 	Scts                         bool
 	Ems                          bool // [UTLS] actually implemented due to its prevalence
-	SupportedCurves              []CurveID
+	SupportedCurves              []tls.CurveID
 	SupportedPoints              []uint8
 	TicketSupported              bool
 	SessionTicket                []uint8
@@ -535,7 +536,7 @@ func (fh *finishedHash) getPublicObj() FinishedHash {
 
 // TLS 1.3 Key Share. See RFC 8446, Section 4.2.8.
 type KeyShare struct {
-	Group CurveID
+	Group tls.CurveID
 	Data  []byte
 }
 

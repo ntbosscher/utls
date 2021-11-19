@@ -5,6 +5,7 @@
 package tls
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"strings"
@@ -167,13 +168,13 @@ func (f *Fingerprinter) FingerprintClientHello(data []byte) (*ClientHelloSpec, e
 			if !extData.ReadUint16LengthPrefixed(&curvesBytes) || curvesBytes.Empty() {
 				return nil, errors.New("unable to read supported curves extension data")
 			}
-			curves := []CurveID{}
+			curves := []tls.CurveID{}
 			for !curvesBytes.Empty() {
 				var curve uint16
 				if !curvesBytes.ReadUint16(&curve) {
 					return nil, errors.New("unable to read supported curves extension data")
 				}
-				curves = append(curves, CurveID(spec.unGREASEUint16(curve)))
+				curves = append(curves, tls.CurveID(spec.unGREASEUint16(curve)))
 			}
 			spec.Extensions = append(spec.Extensions, &SupportedCurvesExtension{curves})
 
@@ -274,7 +275,7 @@ func (f *Fingerprinter) FingerprintClientHello(data []byte) (*ClientHelloSpec, e
 					len(ks.Data) == 0 {
 					return nil, errors.New("unable to read key share extension data")
 				}
-				ks.Group = CurveID(spec.unGREASEUint16(group))
+				ks.Group = tls.CurveID(spec.unGREASEUint16(group))
 				// if not GREASE, key share data will be discarded as it should
 				// be generated per connection
 				if ks.Group != GREASE_PLACEHOLDER {

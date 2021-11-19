@@ -7,6 +7,7 @@ package tls
 import (
 	"crypto/elliptic"
 	"crypto/hmac"
+	"crypto/tls"
 	"errors"
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/crypto/curve25519"
@@ -100,16 +101,16 @@ func (c *cipherSuiteTLS13) exportKeyingMaterial(masterSecret []byte, transcript 
 	}
 }
 
-// ecdheParameters implements Diffie-Hellman with either NIST curves or X25519,
+// ecdheParameters implements Diffie-Hellman with either NIST curves or tls.X25519,
 // according to RFC 8446, Section 4.2.8.2.
 type ecdheParameters interface {
-	CurveID() CurveID
+	CurveID() tls.CurveID
 	PublicKey() []byte
 	SharedKey(peerPublicKey []byte) []byte
 }
 
-func generateECDHEParameters(rand io.Reader, curveID CurveID) (ecdheParameters, error) {
-	if curveID == X25519 {
+func generateECDHEParameters(rand io.Reader, curveID tls.CurveID) (ecdheParameters, error) {
+	if curveID == tls.X25519 {
 		p := &x25519Parameters{}
 		if _, err := io.ReadFull(rand, p.privateKey[:]); err != nil {
 			return nil, err
@@ -132,13 +133,13 @@ func generateECDHEParameters(rand io.Reader, curveID CurveID) (ecdheParameters, 
 	return p, nil
 }
 
-func curveForCurveID(id CurveID) (elliptic.Curve, bool) {
+func curveForCurveID(id tls.CurveID) (elliptic.Curve, bool) {
 	switch id {
-	case CurveP256:
+	case tls.CurveP256:
 		return elliptic.P256(), true
-	case CurveP384:
+	case tls.CurveP384:
 		return elliptic.P384(), true
-	case CurveP521:
+	case tls.CurveP521:
 		return elliptic.P521(), true
 	default:
 		return nil, false
@@ -148,10 +149,10 @@ func curveForCurveID(id CurveID) (elliptic.Curve, bool) {
 type nistParameters struct {
 	privateKey []byte
 	x, y       *big.Int // public key
-	curveID    CurveID
+	curveID    tls.CurveID
 }
 
-func (p *nistParameters) CurveID() CurveID {
+func (p *nistParameters) CurveID() tls.CurveID {
 	return p.curveID
 }
 
@@ -181,8 +182,8 @@ type x25519Parameters struct {
 	publicKey  [32]byte
 }
 
-func (p *x25519Parameters) CurveID() CurveID {
-	return X25519
+func (p *x25519Parameters) CurveID() tls.CurveID {
+	return tls.X25519
 }
 
 func (p *x25519Parameters) PublicKey() []byte {

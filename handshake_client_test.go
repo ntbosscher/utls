@@ -647,7 +647,7 @@ func TestHandshakeClientECDHEECDSAAES128CBCSHA256(t *testing.T) {
 
 func TestHandshakeClientX25519(t *testing.T) {
 	config := testConfig.Clone()
-	config.CurvePreferences = []CurveID{X25519}
+	config.CurvePreferences = []tls.CurveID{X25519}
 
 	test := &clientTest{
 		name:   "X25519-ECDHE",
@@ -661,7 +661,7 @@ func TestHandshakeClientX25519(t *testing.T) {
 
 func TestHandshakeClientP256(t *testing.T) {
 	config := testConfig.Clone()
-	config.CurvePreferences = []CurveID{CurveP256}
+	config.CurvePreferences = []tls.CurveID{CurveP256}
 
 	test := &clientTest{
 		name:   "P256-ECDHE",
@@ -675,7 +675,7 @@ func TestHandshakeClientP256(t *testing.T) {
 
 func TestHandshakeClientHelloRetryRequest(t *testing.T) {
 	config := testConfig.Clone()
-	config.CurvePreferences = []CurveID{X25519, CurveP256}
+	config.CurvePreferences = []tls.CurveID{X25519, CurveP256}
 
 	test := &clientTest{
 		name:   "HelloRetryRequest",

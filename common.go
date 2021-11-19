@@ -106,23 +106,9 @@ const (
 	scsvRenegotiation uint16 = 0x00ff
 )
 
-// CurveID is the type of a TLS identifier for an elliptic curve. See
-// https://www.iana.org/assignments/tls-parameters/tls-parameters.xml#tls-parameters-8.
-//
-// In TLS 1.3, this type is called NamedGroup, but at this time this library
-// only supports Elliptic Curve based groups. See RFC 8446, Section 4.2.7.
-type CurveID uint16
-
-const (
-	CurveP256 CurveID = 23
-	CurveP384 CurveID = 24
-	CurveP521 CurveID = 25
-	X25519    CurveID = 29
-)
-
 // TLS 1.3 Key Share. See RFC 8446, Section 4.2.8.
 type keyShare struct {
-	group CurveID
+	group tls.CurveID
 	data  []byte
 }
 
@@ -319,7 +305,7 @@ type ClientHelloInfo struct {
 	// SupportedCurves lists the elliptic curves supported by the client.
 	// SupportedCurves is set only if the Supported Elliptic Curves
 	// Extension is being used (see RFC 4492, Section 5.1.1).
-	SupportedCurves []CurveID
+	SupportedCurves []tls.CurveID
 
 	// SupportedPoints lists the point formats supported by the client.
 	// SupportedPoints is set only if the Supported Point Formats Extension
@@ -559,7 +545,7 @@ type Config struct {
 	// an ECDHE handshake, in preference order. If empty, the default will
 	// be used. The client will use the first preference as the type for
 	// its key share in TLS 1.3. This may change in the future.
-	CurvePreferences []CurveID
+	CurvePreferences []tls.CurveID
 
 	// DynamicRecordSizingDisabled disables adaptive sizing of TLS records.
 	// When true, the largest possible TLS record size is always used. When
@@ -837,9 +823,9 @@ func supportedVersionsFromMax(maxVersion uint16) []uint16 {
 	return versions
 }
 
-var defaultCurvePreferences = []CurveID{X25519, CurveP256, CurveP384, CurveP521}
+var defaultCurvePreferences = []tls.CurveID{tls.X25519, tls.CurveP256, tls.CurveP384, tls.CurveP521}
 
-func (c *Config) curvePreferences() []CurveID {
+func (c *Config) curvePreferences() []tls.CurveID {
 	if c == nil || len(c.CurvePreferences) == 0 {
 		return defaultCurvePreferences
 	}

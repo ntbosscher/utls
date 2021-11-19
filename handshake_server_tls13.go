@@ -172,7 +172,7 @@ func (hs *serverHandshakeStateTLS13) processClientHello() error {
 
 	// Pick the ECDHE group in server preference order, but give priority to
 	// groups with a key share, to avoid a HelloRetryRequest round-trip.
-	var selectedGroup CurveID
+	var selectedGroup tls.CurveID
 	var clientKeyShare *keyShare
 GroupSelection:
 	for _, preferredGroup := range c.config.curvePreferences() {
@@ -204,7 +204,7 @@ GroupSelection:
 		clientKeyShare = &hs.clientHello.keyShares[0]
 	}
 
-	if _, ok := curveForCurveID(selectedGroup); selectedGroup != X25519 && !ok {
+	if _, ok := curveForCurveID(selectedGroup); selectedGroup != tls.X25519 && !ok {
 		c.sendAlert(alertInternalError)
 		return errors.New("tls: CurvePreferences includes unsupported curve")
 	}
@@ -405,7 +405,7 @@ func (hs *serverHandshakeStateTLS13) sendDummyChangeCipherSpec() error {
 	return err
 }
 
-func (hs *serverHandshakeStateTLS13) doHelloRetryRequest(selectedGroup CurveID) error {
+func (hs *serverHandshakeStateTLS13) doHelloRetryRequest(selectedGroup tls.CurveID) error {
 	c := hs.c
 
 	// The first ClientHello gets double-hashed into the transcript upon a

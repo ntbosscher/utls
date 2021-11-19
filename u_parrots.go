@@ -6,6 +6,7 @@ package tls
 
 import (
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -59,8 +60,8 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 				&ALPNExtension{AlpnProtocols: []string{"h2", "http/1.1"}},
 				&FakeChannelIDExtension{},
 				&SupportedPointsExtension{SupportedPoints: []byte{pointFormatUncompressed}},
-				&SupportedCurvesExtension{[]CurveID{CurveID(GREASE_PLACEHOLDER),
-					X25519, CurveP256, CurveP384}},
+				&SupportedCurvesExtension{[]tls.CurveID{tls.CurveID(GREASE_PLACEHOLDER),
+					tls.X25519, tls.CurveP256, tls.CurveP384}},
 				&UtlsGREASEExtension{},
 				&UtlsPaddingExtension{GetPaddingLen: BoringPaddingStyle},
 			},
@@ -117,8 +118,8 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 					pointFormatUncompressed,
 				}},
 				&KeyShareExtension{[]KeyShare{
-					{Group: CurveID(GREASE_PLACEHOLDER), Data: []byte{0}},
-					{Group: X25519},
+					{Group: tls.CurveID(GREASE_PLACEHOLDER), Data: []byte{0}},
+					{Group: tls.X25519},
 				}},
 				&PSKKeyExchangeModesExtension{[]uint8{pskModeDHE}},
 				&SupportedVersionsExtension{[]uint16{
@@ -127,11 +128,11 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 					VersionTLS12,
 					VersionTLS11,
 					VersionTLS10}},
-				&SupportedCurvesExtension{[]CurveID{
-					CurveID(GREASE_PLACEHOLDER),
-					X25519,
-					CurveP256,
-					CurveP384,
+				&SupportedCurvesExtension{[]tls.CurveID{
+					tls.CurveID(GREASE_PLACEHOLDER),
+					tls.X25519,
+					tls.CurveP256,
+					tls.CurveP384,
 				}},
 				&FakeCertCompressionAlgsExtension{[]CertCompressionAlgo{CertCompressionBrotli}},
 				&UtlsGREASEExtension{},
@@ -167,11 +168,11 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 				&SNIExtension{},
 				&UtlsExtendedMasterSecretExtension{},
 				&RenegotiationInfoExtension{Renegotiation: RenegotiateOnceAsClient},
-				&SupportedCurvesExtension{[]CurveID{
-					CurveID(GREASE_PLACEHOLDER),
-					X25519,
-					CurveP256,
-					CurveP384,
+				&SupportedCurvesExtension{[]tls.CurveID{
+					tls.CurveID(GREASE_PLACEHOLDER),
+					tls.X25519,
+					tls.CurveP256,
+					tls.CurveP384,
 				}},
 				&SupportedPointsExtension{SupportedPoints: []byte{
 					0x00, // pointFormatUncompressed
@@ -192,8 +193,8 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 				}},
 				&SCTExtension{},
 				&KeyShareExtension{[]KeyShare{
-					{Group: CurveID(GREASE_PLACEHOLDER), Data: []byte{0}},
-					{Group: X25519},
+					{Group: tls.CurveID(GREASE_PLACEHOLDER), Data: []byte{0}},
+					{Group: tls.X25519},
 				}},
 				&PSKKeyExchangeModesExtension{[]uint8{
 					PskModeDHE,
@@ -240,11 +241,11 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 				&SNIExtension{},
 				&UtlsExtendedMasterSecretExtension{},
 				&RenegotiationInfoExtension{Renegotiation: RenegotiateOnceAsClient},
-				&SupportedCurvesExtension{[]CurveID{
-					CurveID(GREASE_PLACEHOLDER),
-					X25519,
-					CurveP256,
-					CurveP384,
+				&SupportedCurvesExtension{[]tls.CurveID{
+					tls.CurveID(GREASE_PLACEHOLDER),
+					tls.X25519,
+					tls.CurveP256,
+					tls.CurveP384,
 				}},
 				&SupportedPointsExtension{SupportedPoints: []byte{
 					0x00, // pointFormatUncompressed
@@ -264,8 +265,8 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 				}},
 				&SCTExtension{},
 				&KeyShareExtension{[]KeyShare{
-					{Group: CurveID(GREASE_PLACEHOLDER), Data: []byte{0}},
-					{Group: X25519},
+					{Group: tls.CurveID(GREASE_PLACEHOLDER), Data: []byte{0}},
+					{Group: tls.X25519},
 				}},
 				&PSKKeyExchangeModesExtension{[]uint8{
 					PskModeDHE,
@@ -310,7 +311,7 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 				&SNIExtension{},
 				&UtlsExtendedMasterSecretExtension{},
 				&RenegotiationInfoExtension{Renegotiation: RenegotiateOnceAsClient},
-				&SupportedCurvesExtension{[]CurveID{X25519, CurveP256, CurveP384, CurveP521}},
+				&SupportedCurvesExtension{[]tls.CurveID{tls.X25519, tls.CurveP256, tls.CurveP384, tls.CurveP521}},
 				&SupportedPointsExtension{SupportedPoints: []byte{pointFormatUncompressed}},
 				&SessionTicketExtension{},
 				&ALPNExtension{AlpnProtocols: []string{"h2", "http/1.1"}},
@@ -363,13 +364,13 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 				&SNIExtension{},
 				&UtlsExtendedMasterSecretExtension{},
 				&RenegotiationInfoExtension{Renegotiation: RenegotiateOnceAsClient},
-				&SupportedCurvesExtension{[]CurveID{
-					X25519,
-					CurveP256,
-					CurveP384,
-					CurveP521,
-					CurveID(FakeFFDHE2048),
-					CurveID(FakeFFDHE3072),
+				&SupportedCurvesExtension{[]tls.CurveID{
+					tls.X25519,
+					tls.CurveP256,
+					tls.CurveP384,
+					tls.CurveP521,
+					tls.CurveID(FakeFFDHE2048),
+					tls.CurveID(FakeFFDHE3072),
 				}},
 				&SupportedPointsExtension{SupportedPoints: []byte{
 					pointFormatUncompressed,
@@ -378,8 +379,8 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 				&ALPNExtension{AlpnProtocols: []string{"h2", "http/1.1"}},
 				&StatusRequestExtension{},
 				&KeyShareExtension{[]KeyShare{
-					{Group: X25519},
-					{Group: CurveP256},
+					{Group: tls.X25519},
+					{Group: tls.CurveP256},
 				}},
 				&SupportedVersionsExtension{[]uint16{
 					VersionTLS13,
@@ -454,11 +455,11 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 				&SupportedPointsExtension{SupportedPoints: []byte{
 					pointFormatUncompressed,
 				}},
-				&SupportedCurvesExtension{Curves: []CurveID{
-					X25519,
-					CurveP256,
-					CurveP384,
-					CurveP521,
+				&SupportedCurvesExtension{Curves: []tls.CurveID{
+					tls.X25519,
+					tls.CurveP256,
+					tls.CurveP384,
+					tls.CurveP521,
 				}},
 			},
 		}, nil
@@ -516,11 +517,11 @@ func utlsIdToSpec(id ClientHelloID) (ClientHelloSpec, error) {
 				&SupportedPointsExtension{SupportedPoints: []byte{
 					pointFormatUncompressed,
 				}},
-				&SupportedCurvesExtension{[]CurveID{
-					X25519,
-					CurveP256,
-					CurveP384,
-					CurveP521,
+				&SupportedCurvesExtension{[]tls.CurveID{
+					tls.X25519,
+					tls.CurveP256,
+					tls.CurveP384,
+					tls.CurveP521,
 				}},
 			},
 		}, nil
@@ -651,7 +652,7 @@ func (uconn *UConn) ApplyPreset(p *ClientHelloSpec) error {
 		case *SupportedCurvesExtension:
 			for i := range ext.Curves {
 				if ext.Curves[i] == GREASE_PLACEHOLDER {
-					ext.Curves[i] = CurveID(GetBoringGREASEValue(uconn.greaseSeed, ssl_grease_group))
+					ext.Curves[i] = tls.CurveID(GetBoringGREASEValue(uconn.greaseSeed, ssl_grease_group))
 				}
 			}
 		case *KeyShareExtension:
@@ -659,7 +660,7 @@ func (uconn *UConn) ApplyPreset(p *ClientHelloSpec) error {
 			for i := range ext.KeyShares {
 				curveID := ext.KeyShares[i].Group
 				if curveID == GREASE_PLACEHOLDER {
-					ext.KeyShares[i].Group = CurveID(GetBoringGREASEValue(uconn.greaseSeed, ssl_grease_group))
+					ext.KeyShares[i].Group = tls.CurveID(GetBoringGREASEValue(uconn.greaseSeed, ssl_grease_group))
 					continue
 				}
 				if len(ext.KeyShares[i].Data) > 1 {
@@ -795,13 +796,13 @@ func (uconn *UConn) generateRandomizedSpec() (ClientHelloSpec, error) {
 	ems := UtlsExtendedMasterSecretExtension{}
 	points := SupportedPointsExtension{SupportedPoints: []byte{pointFormatUncompressed}}
 
-	curveIDs := []CurveID{}
+	curveIDs := []tls.CurveID{}
 	if r.FlipWeightedCoin(0.71) || p.TLSVersMax == VersionTLS13 {
-		curveIDs = append(curveIDs, X25519)
+		curveIDs = append(curveIDs, tls.X25519)
 	}
-	curveIDs = append(curveIDs, CurveP256, CurveP384)
+	curveIDs = append(curveIDs, tls.CurveP256, tls.CurveP384)
 	if r.FlipWeightedCoin(0.46) {
-		curveIDs = append(curveIDs, CurveP521)
+		curveIDs = append(curveIDs, tls.CurveP521)
 	}
 
 	curves := SupportedCurvesExtension{curveIDs}
@@ -845,13 +846,13 @@ func (uconn *UConn) generateRandomizedSpec() (ClientHelloSpec, error) {
 	}
 	if p.TLSVersMax == VersionTLS13 {
 		ks := KeyShareExtension{[]KeyShare{
-			{Group: X25519}, // the key for the group will be generated later
+			{Group: tls.X25519}, // the key for the group will be generated later
 		}}
 		if r.FlipWeightedCoin(0.25) {
 			// do not ADD second keyShare because crypto/tls does not support multiple ecdheParams
 			// TODO: add it back when they implement multiple keyShares, or implement it oursevles
 			// ks.KeyShares = append(ks.KeyShares, KeyShare{Group: CurveP256})
-			ks.KeyShares[0].Group = CurveP256
+			ks.KeyShares[0].Group = tls.CurveP256
 		}
 		pskExchangeModes := PSKKeyExchangeModesExtension{[]uint8{pskModeDHE}}
 		supportedVersionsExt := SupportedVersionsExtension{

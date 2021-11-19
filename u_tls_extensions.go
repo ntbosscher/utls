@@ -6,6 +6,7 @@ package tls
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -125,12 +126,12 @@ func (e *StatusRequestExtension) Read(b []byte) (int, error) {
 }
 
 type SupportedCurvesExtension struct {
-	Curves []CurveID
+	Curves []tls.CurveID
 }
 
 func (e *SupportedCurvesExtension) Clone() TLSExtension {
 	return &SupportedCurvesExtension{
-		Curves: append([]CurveID{}, e.Curves...),
+		Curves: append([]tls.CurveID{}, e.Curves...),
 	}
 }
 
@@ -158,7 +159,7 @@ func (e *SupportedCurvesExtension) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func curveArrayToHex(input []CurveID) string {
+func curveArrayToHex(input []tls.CurveID) string {
 	wr := bytes.NewBuffer(nil)
 	for _, b := range input {
 		wr.WriteString(fmt.Sprintf("0x%04x ", b))
@@ -167,15 +168,15 @@ func curveArrayToHex(input []CurveID) string {
 	return strings.TrimSpace(wr.String())
 }
 
-func parseCurveId(input string) (CurveID, error) {
+func parseCurveId(input string) (tls.CurveID, error) {
 	val, err := parseUint16(input)
-	return CurveID(val), err
+	return tls.CurveID(val), err
 }
 
-func parseCurveArray(input string) ([]CurveID, error) {
+func parseCurveArray(input string) ([]tls.CurveID, error) {
 
 	parts := strings.Split(input, " ")
-	out := []CurveID{}
+	out := []tls.CurveID{}
 
 	for _, b := range parts {
 		val, err := parseCurveId(b)

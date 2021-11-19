@@ -138,9 +138,9 @@ func (*clientHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	}
 	m.ocspStapling = rand.Intn(10) > 5
 	m.supportedPoints = randomBytes(rand.Intn(5)+1, rand)
-	m.supportedCurves = make([]CurveID, rand.Intn(5)+1)
+	m.supportedCurves = make([]tls.CurveID, rand.Intn(5)+1)
 	for i := range m.supportedCurves {
-		m.supportedCurves[i] = CurveID(rand.Intn(30000) + 1)
+		m.supportedCurves[i] = tls.CurveID(rand.Intn(30000) + 1)
 	}
 	if rand.Intn(10) > 5 {
 		m.ticketSupported = true
@@ -174,7 +174,7 @@ func (*clientHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	}
 	for i := 0; i < rand.Intn(5); i++ {
 		var ks keyShare
-		ks.group = CurveID(rand.Intn(30000) + 1)
+		ks.group = tls.CurveID(rand.Intn(30000) + 1)
 		ks.data = randomBytes(rand.Intn(200)+1, rand)
 		m.keyShares = append(m.keyShares, ks)
 	}
@@ -239,11 +239,11 @@ func (*serverHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	}
 	if rand.Intn(10) > 5 {
 		for i := 0; i < rand.Intn(5); i++ {
-			m.serverShare.group = CurveID(rand.Intn(30000) + 1)
+			m.serverShare.group = tls.CurveID(rand.Intn(30000) + 1)
 			m.serverShare.data = randomBytes(rand.Intn(200)+1, rand)
 		}
 	} else if rand.Intn(10) > 5 {
-		m.selectedGroup = CurveID(rand.Intn(30000) + 1)
+		m.selectedGroup = tls.CurveID(rand.Intn(30000) + 1)
 	}
 	if rand.Intn(10) > 5 {
 		m.selectedIdentityPresent = true

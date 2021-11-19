@@ -179,7 +179,7 @@ func TestDontSelectECDSAWithRSAKey(t *testing.T) {
 		random:             make([]byte, 32),
 		cipherSuites:       []uint16{TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA},
 		compressionMethods: []uint8{compressionNone},
-		supportedCurves:    []CurveID{CurveP256},
+		supportedCurves:    []tls.CurveID{CurveP256},
 		supportedPoints:    []uint8{pointFormatUncompressed},
 	}
 	serverConfig := testConfig.Clone()
@@ -205,7 +205,7 @@ func TestDontSelectRSAWithECDSAKey(t *testing.T) {
 		random:             make([]byte, 32),
 		cipherSuites:       []uint16{TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA},
 		compressionMethods: []uint8{compressionNone},
-		supportedCurves:    []CurveID{CurveP256},
+		supportedCurves:    []tls.CurveID{CurveP256},
 		supportedPoints:    []uint8{pointFormatUncompressed},
 	}
 	serverConfig := testConfig.Clone()
@@ -287,7 +287,7 @@ func TestTLS12OnlyCipherSuites(t *testing.T) {
 			TLS_RSA_WITH_RC4_128_SHA,
 		},
 		compressionMethods: []uint8{compressionNone},
-		supportedCurves:    []CurveID{CurveP256, CurveP384, CurveP521},
+		supportedCurves:    []tls.CurveID{CurveP256, CurveP384, CurveP521},
 		supportedPoints:    []uint8{pointFormatUncompressed},
 	}
 
@@ -869,7 +869,7 @@ func TestHandshakeServerECDHEECDSAAES(t *testing.T) {
 
 func TestHandshakeServerX25519(t *testing.T) {
 	config := testConfig.Clone()
-	config.CurvePreferences = []CurveID{X25519}
+	config.CurvePreferences = []tls.CurveID{X25519}
 
 	test := &serverTest{
 		name:    "X25519",
@@ -882,7 +882,7 @@ func TestHandshakeServerX25519(t *testing.T) {
 
 func TestHandshakeServerP256(t *testing.T) {
 	config := testConfig.Clone()
-	config.CurvePreferences = []CurveID{CurveP256}
+	config.CurvePreferences = []tls.CurveID{CurveP256}
 
 	test := &serverTest{
 		name:    "P256",
@@ -895,7 +895,7 @@ func TestHandshakeServerP256(t *testing.T) {
 
 func TestHandshakeServerHelloRetryRequest(t *testing.T) {
 	config := testConfig.Clone()
-	config.CurvePreferences = []CurveID{CurveP256}
+	config.CurvePreferences = []tls.CurveID{CurveP256}
 
 	test := &serverTest{
 		name:    "HelloRetryRequest",
@@ -1109,7 +1109,7 @@ func TestServerResumption(t *testing.T) {
 	runServerTestTLS13(t, testResume)
 
 	config := testConfig.Clone()
-	config.CurvePreferences = []CurveID{CurveP256}
+	config.CurvePreferences = []tls.CurveID{CurveP256}
 
 	testResumeHRR := &serverTest{
 		name:    "Resume-HelloRetryRequest",
@@ -1211,10 +1211,10 @@ func TestHandshakeServerRSAPSS(t *testing.T) {
 	runServerTestTLS13(t, test)
 }
 
-func benchmarkHandshakeServer(b *testing.B, version uint16, cipherSuite uint16, curve CurveID, cert []byte, key crypto.PrivateKey) {
+func benchmarkHandshakeServer(b *testing.B, version uint16, cipherSuite uint16, curve tls.CurveID, cert []byte, key crypto.PrivateKey) {
 	config := testConfig.Clone()
 	config.CipherSuites = []uint16{cipherSuite}
-	config.CurvePreferences = []CurveID{curve}
+	config.CurvePreferences = []tls.CurveID{curve}
 	config.Certificates = make([]Certificate, 1)
 	config.Certificates[0].Certificate = [][]byte{cert}
 	config.Certificates[0].PrivateKey = key
@@ -1225,7 +1225,7 @@ func benchmarkHandshakeServer(b *testing.B, version uint16, cipherSuite uint16, 
 	go func() {
 		config := testConfig.Clone()
 		config.MaxVersion = version
-		config.CurvePreferences = []CurveID{curve}
+		config.CurvePreferences = []tls.CurveID{curve}
 		client := Client(clientConn, config)
 		client.Handshake()
 	}()

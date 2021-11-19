@@ -92,7 +92,7 @@ func TestUTLSHandshakeClientParrotChrome_70(t *testing.T) {
 func TestUTLSHandshakeClientParrotChrome_58(t *testing.T) {
 	hello := &helloID{HelloChrome_58}
 	// TODO: EC tests below are disabled because latest version of reference OpenSSL doesn't support p256 nor p384
-	// nor X25519 and I can't find configuration flag to enable it. Therefore I can't record replays.
+	// nor tls.X25519 and I can't find configuration flag to enable it. Therefore I can't record replays.
 
 	//testUTLSHandshakeClientECDHE_ECDSA_AES128_GCM_SHA256(t, hello)
 	testUTLSHandshakeClientECDHE_RSA_AES128_GCM_SHA256(t, hello)
@@ -165,12 +165,12 @@ func TestUTLSHandshakeClientParrotChrome_58_setclienthello(t *testing.T) {
 }
 
 // tests consistency of fingerprint after HelloRetryRequest
-// chrome 70 is used, due to only specifying X25519 in keyshare, but being able to generate P-256 curve too
+// chrome 70 is used, due to only specifying tls.X25519 in keyshare, but being able to generate P-256 curve too
 // openssl server, configured to use P-256, will send HelloRetryRequest
 func TestUTLSHelloRetryRequest(t *testing.T) {
 	hello := &helloID{HelloChrome_70}
 	config := testConfig.Clone()
-	config.CurvePreferences = []CurveID{X25519, CurveP256}
+	config.CurvePreferences = []tls.CurveID{X25519, CurveP256}
 
 	test := &clientTest{
 		name:   "UTLS-HelloRetryRequest-" + hello.helloName(),

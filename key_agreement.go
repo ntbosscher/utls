@@ -144,7 +144,7 @@ type ecdheKeyAgreement struct {
 func (ka *ecdheKeyAgreement) generateServerKeyExchange(config *Config, cert *tls.Certificate, clientHello *clientHelloMsg, hello *serverHelloMsg) (*serverKeyExchangeMsg, error) {
 	preferredCurves := config.curvePreferences()
 
-	var curveID CurveID
+	var curveID tls.CurveID
 NextCandidate:
 	for _, candidate := range preferredCurves {
 		for _, c := range clientHello.supportedCurves {
@@ -158,7 +158,7 @@ NextCandidate:
 	if curveID == 0 {
 		return nil, errors.New("tls: no supported elliptic curves offered")
 	}
-	if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
+	if _, ok := curveForCurveID(curveID); curveID != tls.X25519 && !ok {
 		return nil, errors.New("tls: CurvePreferences includes unsupported curve")
 	}
 
@@ -241,7 +241,7 @@ func (ka *ecdheKeyAgreement) processServerKeyExchange(config *Config, clientHell
 	if skx.key[0] != 3 { // named curve
 		return errors.New("tls: server selected unsupported curve")
 	}
-	curveID := CurveID(skx.key[1])<<8 | CurveID(skx.key[2])
+	curveID := tls.CurveID(skx.key[1])<<8 | tls.CurveID(skx.key[2])
 
 	publicLen := int(skx.key[3])
 	if publicLen+4 > len(skx.key) {
@@ -255,7 +255,7 @@ func (ka *ecdheKeyAgreement) processServerKeyExchange(config *Config, clientHell
 		return errServerKeyExchange
 	}
 
-	if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
+	if _, ok := curveForCurveID(curveID); curveID != tls.X25519 && !ok {
 		return errors.New("tls: server selected unsupported curve")
 	}
 

@@ -124,7 +124,7 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 		hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13()...)
 
 		curveID := config.curvePreferences()[0]
-		if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
+		if _, ok := curveForCurveID(curveID); curveID != tls.X25519 && !ok {
 			return nil, nil, errors.New("tls: CurvePreferences includes unsupported curve")
 		}
 		params, err = generateECDHEParameters(config.rand(), curveID)

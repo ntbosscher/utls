@@ -22,8 +22,8 @@ func assertEquality(t *testing.T, fieldName string, expected, actual interface{}
 	}
 
 	if fieldName == "SupportedCurves" || fieldName == "KeyShares" {
-		cExpected := expected.(CurveID)
-		cActual := actual.(CurveID)
+		cExpected := expected.(tls.CurveID)
+		cActual := actual.(tls.CurveID)
 		if isGREASEUint16(uint16(cExpected)) && isGREASEUint16(uint16(cActual)) {
 			return
 		}

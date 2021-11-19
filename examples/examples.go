@@ -213,7 +213,7 @@ func HttpGetCustom(hostname string, addr string) (*http.Response, error) {
 		},
 		Extensions: []tls.TLSExtension{
 			&tls.SNIExtension{},
-			&tls.SupportedCurvesExtension{Curves: []tls.CurveID{tls.X25519, tls.CurveP256}},
+			&tls.SupportedCurvesExtension{Curves: []tls.tls.CurveID{tls.X25519, tls.CurveP256}},
 			&tls.SupportedPointsExtension{SupportedPoints: []byte{0}}, // uncompressed
 			&tls.SessionTicketExtension{},
 			&tls.ALPNExtension{AlpnProtocols: []string{"myFancyProtocol", "http/1.1"}},
@@ -230,7 +230,7 @@ func HttpGetCustom(hostname string, addr string) (*http.Response, error) {
 				tls.ECDSAWithSHA1,
 				tls.PKCS1WithSHA1}},
 			&tls.KeyShareExtension{[]tls.KeyShare{
-				{Group: tls.CurveID(tls.GREASE_PLACEHOLDER), Data: []byte{0}},
+				{Group: tls.tls.CurveID(tls.GREASE_PLACEHOLDER), Data: []byte{0}},
 				{Group: tls.X25519},
 			}},
 			&tls.PSKKeyExchangeModesExtension{[]uint8{1}}, // pskModeDHE

@@ -76,7 +76,7 @@ type clientHelloMsg struct {
 	nextProtoNeg                     bool
 	serverName                       string
 	ocspStapling                     bool
-	supportedCurves                  []CurveID
+	supportedCurves                  []tls.CurveID
 	supportedPoints                  []uint8
 	ticketSupported                  bool
 	sessionTicket                    []uint8
@@ -452,7 +452,7 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 				if !curves.ReadUint16(&curve) {
 					return false
 				}
-				m.supportedCurves = append(m.supportedCurves, CurveID(curve))
+				m.supportedCurves = append(m.supportedCurves, tls.CurveID(curve))
 			}
 		case extensionSupportedPoints:
 			// RFC 4492, Section 5.1.2
@@ -622,7 +622,7 @@ type serverHelloMsg struct {
 
 	// HelloRetryRequest extensions
 	cookie        []byte
-	selectedGroup CurveID
+	selectedGroup tls.CurveID
 }
 
 func (m *serverHelloMsg) marshal() []byte {
