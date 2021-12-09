@@ -5,10 +5,10 @@
 package tls
 
 import (
-	"crypto/tls"
 	"fmt"
-	"golang.org/x/crypto/cryptobyte"
 	"strings"
+
+	"golang.org/x/crypto/cryptobyte"
 )
 
 // The marshalingFunction type is an adapter to allow the use of ordinary
@@ -73,10 +73,9 @@ type clientHelloMsg struct {
 	sessionId                        []byte
 	cipherSuites                     []uint16
 	compressionMethods               []uint8
-	nextProtoNeg                     bool
 	serverName                       string
 	ocspStapling                     bool
-	supportedCurves                  []tls.CurveID
+	supportedCurves                  []CurveID
 	supportedPoints                  []uint8
 	ticketSupported                  bool
 	sessionTicket                    []uint8
@@ -86,7 +85,6 @@ type clientHelloMsg struct {
 	secureRenegotiation              []byte
 	alpnProtocols                    []string
 	scts                             bool
-	ems                              bool // [UTLS] actually implemented due to its prevalence
 	supportedVersions                []uint16
 	cookie                           []byte
 	keyShares                        []keyShare
@@ -123,11 +121,6 @@ func (m *clientHelloMsg) marshal() []byte {
 		bWithoutExtensions := *b
 
 		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-			if m.nextProtoNeg {
-				// draft-agl-tls-nextprotoneg-04
-				b.AddUint16(extensionNextProtoNeg)
-				b.AddUint16(0) // empty extension_data
-			}
 			if len(m.serverName) > 0 {
 				// RFC 6066, Section 3
 				b.AddUint16(extensionServerName)
@@ -428,9 +421,6 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 					return false
 				}
 			}
-		case extensionNextProtoNeg:
-			// draft-agl-tls-nextprotoneg-04
-			m.nextProtoNeg = true
 		case extensionStatusRequest:
 			// RFC 4366, Section 3.6
 			var statusType uint8
@@ -452,7 +442,7 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 				if !curves.ReadUint16(&curve) {
 					return false
 				}
-				m.supportedCurves = append(m.supportedCurves, tls.CurveID(curve))
+				m.supportedCurves = append(m.supportedCurves, CurveID(curve))
 			}
 		case extensionSupportedPoints:
 			// RFC 4492, Section 5.1.2
@@ -606,23 +596,21 @@ type serverHelloMsg struct {
 	sessionId                    []byte
 	cipherSuite                  uint16
 	compressionMethod            uint8
-	nextProtoNeg                 bool
-	nextProtos                   []string
 	ocspStapling                 bool
 	ticketSupported              bool
 	secureRenegotiationSupported bool
 	secureRenegotiation          []byte
 	alpnProtocol                 string
-	ems                          bool
 	scts                         [][]byte
 	supportedVersion             uint16
 	serverShare                  keyShare
 	selectedIdentityPresent      bool
 	selectedIdentity             uint16
+	supportedPoints              []uint8
 
 	// HelloRetryRequest extensions
 	cookie        []byte
-	selectedGroup tls.CurveID
+	selectedGroup CurveID
 }
 
 func (m *serverHelloMsg) marshal() []byte {
@@ -646,16 +634,6 @@ func (m *serverHelloMsg) marshal() []byte {
 		bWithoutExtensions := *b
 
 		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-			if m.nextProtoNeg {
-				b.AddUint16(extensionNextProtoNeg)
-				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-					for _, proto := range m.nextProtos {
-						b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
-							b.AddBytes([]byte(proto))
-						})
-					}
-				})
-			}
 			if m.ocspStapling {
 				b.AddUint16(extensionStatusRequest)
 				b.AddUint16(0) // empty extension_data
@@ -730,6 +708,14 @@ func (m *serverHelloMsg) marshal() []byte {
 					b.AddUint16(uint16(m.selectedGroup))
 				})
 			}
+			if len(m.supportedPoints) > 0 {
+				b.AddUint16(extensionSupportedPoints)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+						b.AddBytes(m.supportedPoints)
+					})
+				})
+			}
 
 			extensionsPresent = len(b.BytesOrPanic()) > 2
 		})
@@ -774,26 +760,10 @@ func (m *serverHelloMsg) unmarshal(data []byte) bool {
 		}
 
 		switch extension {
-		case extensionNextProtoNeg:
-			m.nextProtoNeg = true
-			for !extData.Empty() {
-				var proto cryptobyte.String
-				if !extData.ReadUint8LengthPrefixed(&proto) ||
-					proto.Empty() {
-					return false
-				}
-				m.nextProtos = append(m.nextProtos, string(proto))
-			}
 		case extensionStatusRequest:
 			m.ocspStapling = true
 		case extensionSessionTicket:
 			m.ticketSupported = true
-		case utlsExtensionExtendedMasterSecret:
-			// No sanity check for this extension: pretending not to know it.
-			// if length > 0 {
-			// 	return false
-			// }
-			m.ems = true
 		case extensionRenegotiationInfo:
 			if !readUint8LengthPrefixed(&extData, &m.secureRenegotiation) {
 				return false
@@ -848,6 +818,12 @@ func (m *serverHelloMsg) unmarshal(data []byte) bool {
 		case extensionPreSharedKey:
 			m.selectedIdentityPresent = true
 			if !extData.ReadUint16(&m.selectedIdentity) {
+				return false
+			}
+		case extensionSupportedPoints:
+			// RFC 4492, Section 5.1.2
+			if !readUint8LengthPrefixed(&extData, &m.supportedPoints) ||
+				len(m.supportedPoints) == 0 {
 				return false
 			}
 		default:
@@ -1303,7 +1279,7 @@ func (m *certificateMsg) unmarshal(data []byte) bool {
 
 type certificateMsgTLS13 struct {
 	raw          []byte
-	certificate  tls.Certificate
+	certificate  Certificate
 	ocspStapling bool
 	scts         bool
 }
@@ -1332,7 +1308,7 @@ func (m *certificateMsgTLS13) marshal() []byte {
 	return m.raw
 }
 
-func marshalCertificate(b *cryptobyte.Builder, certificate tls.Certificate) {
+func marshalCertificate(b *cryptobyte.Builder, certificate Certificate) {
 	b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
 		for i, cert := range certificate.Certificate {
 			b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
@@ -1387,7 +1363,7 @@ func (m *certificateMsgTLS13) unmarshal(data []byte) bool {
 	return true
 }
 
-func unmarshalCertificate(s *cryptobyte.String, certificate *tls.Certificate) bool {
+func unmarshalCertificate(s *cryptobyte.String, certificate *Certificate) bool {
 	var certList cryptobyte.String
 	if !s.ReadUint24LengthPrefixed(&certList) {
 		return false
@@ -1586,66 +1562,6 @@ func (m *finishedMsg) unmarshal(data []byte) bool {
 	return s.Skip(1) &&
 		readUint24LengthPrefixed(&s, &m.verifyData) &&
 		s.Empty()
-}
-
-type nextProtoMsg struct {
-	raw   []byte
-	proto string
-}
-
-func (m *nextProtoMsg) marshal() []byte {
-	if m.raw != nil {
-		return m.raw
-	}
-	l := len(m.proto)
-	if l > 255 {
-		l = 255
-	}
-
-	padding := 32 - (l+2)%32
-	length := l + padding + 2
-	x := make([]byte, length+4)
-	x[0] = typeNextProtocol
-	x[1] = uint8(length >> 16)
-	x[2] = uint8(length >> 8)
-	x[3] = uint8(length)
-
-	y := x[4:]
-	y[0] = byte(l)
-	copy(y[1:], []byte(m.proto[0:l]))
-	y = y[1+l:]
-	y[0] = byte(padding)
-
-	m.raw = x
-
-	return x
-}
-
-func (m *nextProtoMsg) unmarshal(data []byte) bool {
-	m.raw = data
-
-	if len(data) < 5 {
-		return false
-	}
-	data = data[4:]
-	protoLen := int(data[0])
-	data = data[1:]
-	if len(data) < protoLen {
-		return false
-	}
-	m.proto = string(data[0:protoLen])
-	data = data[protoLen:]
-
-	if len(data) < 1 {
-		return false
-	}
-	paddingLen := int(data[0])
-	data = data[1:]
-	if len(data) != paddingLen {
-		return false
-	}
-
-	return true
 }
 
 type certificateRequestMsg struct {

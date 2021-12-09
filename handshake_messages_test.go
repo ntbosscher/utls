@@ -26,7 +26,6 @@ var tests = []interface{}{
 	},
 	&certificateStatusMsg{},
 	&clientKeyExchangeMsg{},
-	&nextProtoMsg{},
 	&newSessionTicketMsg{},
 	&sessionState{},
 	&sessionStateTLS13{},
@@ -128,9 +127,6 @@ func (*clientHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	}
 	m.compressionMethods = randomBytes(rand.Intn(63)+1, rand)
 	if rand.Intn(10) > 5 {
-		m.nextProtoNeg = true
-	}
-	if rand.Intn(10) > 5 {
 		m.serverName = randomString(rand.Intn(255), rand)
 		for strings.HasSuffix(m.serverName, ".") {
 			m.serverName = m.serverName[:len(m.serverName)-1]
@@ -138,9 +134,9 @@ func (*clientHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	}
 	m.ocspStapling = rand.Intn(10) > 5
 	m.supportedPoints = randomBytes(rand.Intn(5)+1, rand)
-	m.supportedCurves = make([]tls.CurveID, rand.Intn(5)+1)
+	m.supportedCurves = make([]CurveID, rand.Intn(5)+1)
 	for i := range m.supportedCurves {
-		m.supportedCurves[i] = tls.CurveID(rand.Intn(30000) + 1)
+		m.supportedCurves[i] = CurveID(rand.Intn(30000) + 1)
 	}
 	if rand.Intn(10) > 5 {
 		m.ticketSupported = true
@@ -174,7 +170,7 @@ func (*clientHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	}
 	for i := 0; i < rand.Intn(5); i++ {
 		var ks keyShare
-		ks.group = tls.CurveID(rand.Intn(30000) + 1)
+		ks.group = CurveID(rand.Intn(30000) + 1)
 		ks.data = randomBytes(rand.Intn(200)+1, rand)
 		m.keyShares = append(m.keyShares, ks)
 	}
@@ -205,13 +201,7 @@ func (*serverHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m.sessionId = randomBytes(rand.Intn(32), rand)
 	m.cipherSuite = uint16(rand.Int31())
 	m.compressionMethod = uint8(rand.Intn(256))
-
-	if rand.Intn(10) > 5 {
-		m.nextProtoNeg = true
-		for i := 0; i < rand.Intn(10); i++ {
-			m.nextProtos = append(m.nextProtos, randomString(20, rand))
-		}
-	}
+	m.supportedPoints = randomBytes(rand.Intn(5)+1, rand)
 
 	if rand.Intn(10) > 5 {
 		m.ocspStapling = true
@@ -239,11 +229,11 @@ func (*serverHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	}
 	if rand.Intn(10) > 5 {
 		for i := 0; i < rand.Intn(5); i++ {
-			m.serverShare.group = tls.CurveID(rand.Intn(30000) + 1)
+			m.serverShare.group = CurveID(rand.Intn(30000) + 1)
 			m.serverShare.data = randomBytes(rand.Intn(200)+1, rand)
 		}
 	} else if rand.Intn(10) > 5 {
-		m.selectedGroup = tls.CurveID(rand.Intn(30000) + 1)
+		m.selectedGroup = CurveID(rand.Intn(30000) + 1)
 	}
 	if rand.Intn(10) > 5 {
 		m.selectedIdentityPresent = true
@@ -308,12 +298,6 @@ func (*finishedMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	return reflect.ValueOf(m)
 }
 
-func (*nextProtoMsg) Generate(rand *rand.Rand, size int) reflect.Value {
-	m := &nextProtoMsg{}
-	m.proto = randomString(rand.Intn(255), rand)
-	return reflect.ValueOf(m)
-}
-
 func (*newSessionTicketMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &newSessionTicketMsg{}
 	m.ticket = randomBytes(rand.Intn(4), rand)
@@ -324,11 +308,10 @@ func (*sessionState) Generate(rand *rand.Rand, size int) reflect.Value {
 	s := &sessionState{}
 	s.vers = uint16(rand.Intn(10000))
 	s.cipherSuite = uint16(rand.Intn(10000))
-	s.masterSecret = randomBytes(rand.Intn(100), rand)
-	numCerts := rand.Intn(20)
-	s.certificates = make([][]byte, numCerts)
-	for i := 0; i < numCerts; i++ {
-		s.certificates[i] = randomBytes(rand.Intn(10)+1, rand)
+	s.masterSecret = randomBytes(rand.Intn(100)+1, rand)
+	s.createdAt = uint64(rand.Int63())
+	for i := 0; i < rand.Intn(20); i++ {
+		s.certificates = append(s.certificates, randomBytes(rand.Intn(500)+1, rand))
 	}
 	return reflect.ValueOf(s)
 }

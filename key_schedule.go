@@ -7,14 +7,14 @@ package tls
 import (
 	"crypto/elliptic"
 	"crypto/hmac"
-	"crypto/tls"
 	"errors"
-	"golang.org/x/crypto/cryptobyte"
-	"golang.org/x/crypto/curve25519"
-	"golang.org/x/crypto/hkdf"
 	"hash"
 	"io"
 	"math/big"
+
+	"golang.org/x/crypto/cryptobyte"
+	"golang.org/x/crypto/curve25519"
+	"golang.org/x/crypto/hkdf"
 )
 
 // This file contains the functions necessary to compute the TLS 1.3 key
@@ -101,22 +101,25 @@ func (c *cipherSuiteTLS13) exportKeyingMaterial(masterSecret []byte, transcript 
 	}
 }
 
-// ecdheParameters implements Diffie-Hellman with either NIST curves or tls.X25519,
+// ecdheParameters implements Diffie-Hellman with either NIST curves or X25519,
 // according to RFC 8446, Section 4.2.8.2.
 type ecdheParameters interface {
-	CurveID() tls.CurveID
+	CurveID() CurveID
 	PublicKey() []byte
 	SharedKey(peerPublicKey []byte) []byte
 }
 
-func generateECDHEParameters(rand io.Reader, curveID tls.CurveID) (ecdheParameters, error) {
-	if curveID == tls.X25519 {
-		p := &x25519Parameters{}
-		if _, err := io.ReadFull(rand, p.privateKey[:]); err != nil {
+func generateECDHEParameters(rand io.Reader, curveID CurveID) (ecdheParameters, error) {
+	if curveID == X25519 {
+		privateKey := make([]byte, curve25519.ScalarSize)
+		if _, err := io.ReadFull(rand, privateKey); err != nil {
 			return nil, err
 		}
-		curve25519.ScalarBaseMult(&p.publicKey, &p.privateKey)
-		return p, nil
+		publicKey, err := curve25519.X25519(privateKey, curve25519.Basepoint)
+		if err != nil {
+			return nil, err
+		}
+		return &x25519Parameters{privateKey: privateKey, publicKey: publicKey}, nil
 	}
 
 	curve, ok := curveForCurveID(curveID)
@@ -133,13 +136,13 @@ func generateECDHEParameters(rand io.Reader, curveID tls.CurveID) (ecdheParamete
 	return p, nil
 }
 
-func curveForCurveID(id tls.CurveID) (elliptic.Curve, bool) {
+func curveForCurveID(id CurveID) (elliptic.Curve, bool) {
 	switch id {
-	case tls.CurveP256:
+	case CurveP256:
 		return elliptic.P256(), true
-	case tls.CurveP384:
+	case CurveP384:
 		return elliptic.P384(), true
-	case tls.CurveP521:
+	case CurveP521:
 		return elliptic.P521(), true
 	default:
 		return nil, false
@@ -149,10 +152,10 @@ func curveForCurveID(id tls.CurveID) (elliptic.Curve, bool) {
 type nistParameters struct {
 	privateKey []byte
 	x, y       *big.Int // public key
-	curveID    tls.CurveID
+	curveID    CurveID
 }
 
-func (p *nistParameters) CurveID() tls.CurveID {
+func (p *nistParameters) CurveID() CurveID {
 	return p.curveID
 }
 
@@ -170,20 +173,17 @@ func (p *nistParameters) SharedKey(peerPublicKey []byte) []byte {
 	}
 
 	xShared, _ := curve.ScalarMult(x, y, p.privateKey)
-	sharedKey := make([]byte, (curve.Params().BitSize+7)>>3)
-	xBytes := xShared.Bytes()
-	copy(sharedKey[len(sharedKey)-len(xBytes):], xBytes)
-
-	return sharedKey
+	sharedKey := make([]byte, (curve.Params().BitSize+7)/8)
+	return xShared.FillBytes(sharedKey)
 }
 
 type x25519Parameters struct {
-	privateKey [32]byte
-	publicKey  [32]byte
+	privateKey []byte
+	publicKey  []byte
 }
 
-func (p *x25519Parameters) CurveID() tls.CurveID {
-	return tls.X25519
+func (p *x25519Parameters) CurveID() CurveID {
+	return X25519
 }
 
 func (p *x25519Parameters) PublicKey() []byte {
@@ -191,11 +191,9 @@ func (p *x25519Parameters) PublicKey() []byte {
 }
 
 func (p *x25519Parameters) SharedKey(peerPublicKey []byte) []byte {
-	if len(peerPublicKey) != 32 {
+	sharedKey, err := curve25519.X25519(p.privateKey, peerPublicKey)
+	if err != nil {
 		return nil
 	}
-	var theirPublicKey, sharedKey [32]byte
-	copy(theirPublicKey[:], peerPublicKey)
-	curve25519.ScalarMult(&sharedKey, &p.privateKey, &theirPublicKey)
-	return sharedKey[:]
+	return sharedKey
 }
