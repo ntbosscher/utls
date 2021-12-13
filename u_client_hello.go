@@ -43,7 +43,7 @@ func (m *ClientHelloResult) Unmarshal(data []byte) error {
 		if suite == scsvRenegotiation {
 			m.SecureRenegotiationSupported = true
 		}
-		m.CipherSuites = append(m.CipherSuites, suite)
+		m.CipherSuites = append(m.CipherSuites, unGrease(suite))
 	}
 
 	if !readUint8LengthPrefixed(&s, &m.CompressionMethods) {
