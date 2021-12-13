@@ -29,8 +29,8 @@ func testHttpServer() context.CancelFunc {
 		Addr:        ":9001",
 		Handler:     mux,
 		IdleTimeout: 1 * time.Second,
-		TLSConfig: &tls.Config{
-			MaxVersion: VersionTLS12,
+		TLSConfig:   &tls.Config{
+			// MaxVersion: VersionTLS12,
 		},
 		// disables h2
 		// TLSNextProto: make(map[string]func(*http.Server, http.TLSConn, http.Handler)),
@@ -241,6 +241,9 @@ var extBytes = []byte(`{
 				"PaddingLen": 202,
 				"WillPad": true
 			}
+		}, {
+			"ID": 41,
+			"Params": {}
 		}
 	]
 }`)
@@ -255,6 +258,8 @@ func TestMockChrome96(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	cache := NewLRUClientSessionCache(10)
+
 	cli := http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -266,6 +271,7 @@ func TestMockChrome96(t *testing.T) {
 					log.Println(err)
 				}
 
+				cn.config.ClientSessionCache = cache
 				return cn
 			},
 			ForceAttemptHTTP2: config.AttemptHTTP2(),
@@ -282,6 +288,7 @@ func TestMockChrome96(t *testing.T) {
 	}
 
 	rs.Body.Close()
+	cli.CloseIdleConnections()
 
 	rs, err = cli.Get("https://localhost:9001/")
 	if err != nil {

@@ -199,6 +199,9 @@ func (u *UConn) setupHello(m *clientHelloMsg) (err error) {
 						if len(m.pskIdentities) == 0 {
 							continue // ignore if no pskIdentities
 						}
+
+						// todo: add support for session resumption
+						continue
 					case *PaddingExtension:
 						if !v.WillPad {
 							continue

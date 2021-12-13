@@ -68,7 +68,7 @@ func (m *ClientHelloResult) Unmarshal(data []byte) error {
 			return errors.New("unable to read extension/extension-data")
 		}
 
-		ext := GetExtensionForID(extension)
+		ext := GetExtensionForID(unGrease(extension))
 		ext.UnmarshalBinary(&extData)
 		m.Extensions = append(m.Extensions, ext)
 

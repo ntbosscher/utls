@@ -40,9 +40,10 @@ var RegisteredExtensions = []Extension{
 }
 
 func GetExtensionForID(id uint16) Extension {
+
 	for _, ext := range RegisteredExtensions {
 		if v, ok := ext.(*GREASEExtension); ok {
-			if IsGrease(id) {
+			if id == GreasePlaceholder {
 				c := v.Clone().(*GREASEExtension)
 				c.Value = GreasePlaceholder
 				return c
@@ -721,8 +722,7 @@ func (e *PSKKeyExchangeModesExtension) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type PSKExtension struct {
-}
+type PSKExtension struct{}
 
 func (e *PSKExtension) ID() uint16 {
 	return extensionPreSharedKey
@@ -753,7 +753,7 @@ func (e *PSKExtension) UnmarshalBinary(extData *cryptobyte.String) bool {
 }
 
 func (e *PSKExtension) Clone() Extension {
-	return &PSKKeyExchangeModesExtension{}
+	return &PSKExtension{}
 }
 
 func (e *PSKExtension) MarshalJSON() ([]byte, error) {
@@ -1068,6 +1068,10 @@ func uint8ArrayToHex(input []uint8) string {
 }
 
 func parseUint8s(input string) ([]uint8, error) {
+	if input == "" {
+		return nil, nil
+	}
+
 	parts := strings.Split(input, " ")
 	out := []uint8{}
 
