@@ -8,6 +8,8 @@ import (
 	"sync"
 )
 
+type InterceptCallback func(conn net.Conn, input *ClientHelloResult, err error)
+
 type tlsIntercepted struct {
 	net.Conn
 
@@ -16,7 +18,7 @@ type tlsIntercepted struct {
 	length        int
 	hello         bytes.Buffer
 
-	callback func(input *ClientHelloResult, err error)
+	callback InterceptCallback
 }
 
 func (t *tlsIntercepted) Read(b []byte) (n int, err error) {
@@ -63,7 +65,7 @@ func (t *tlsIntercepted) Write(b []byte) (n int, err error) {
 	raw := t.hello.Bytes()
 
 	msg, err := decodeClientHello(raw)
-	t.callback(msg, err)
+	t.callback(t.Conn, msg, err)
 
 	return t.Conn.Write(b)
 }
@@ -89,7 +91,7 @@ func decodeClientHello(data []byte) (*ClientHelloResult, error) {
 
 type tlsDebug struct {
 	net.Listener
-	callback func(input *ClientHelloResult, err error)
+	callback InterceptCallback
 }
 
 func (t tlsDebug) Accept() (net.Conn, error) {
@@ -101,6 +103,6 @@ func (t tlsDebug) Accept() (net.Conn, error) {
 	return &tlsIntercepted{Conn: cn, callback: t.callback}, nil
 }
 
-func InterceptHelloWrapper(listen net.Listener, callback func(input *ClientHelloResult, err error)) net.Listener {
+func InterceptHelloWrapper(listen net.Listener, callback InterceptCallback) net.Listener {
 	return &tlsDebug{Listener: listen, callback: callback}
 }
