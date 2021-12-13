@@ -747,17 +747,9 @@ func (e *PSKExtension) MarshalBinary(b *cryptobyte.Builder, u *UConn, msg *clien
 }
 
 func (e *PSKExtension) UnmarshalBinary(extData *cryptobyte.String) bool {
-	var dump cryptobyte.String
+	out := []byte{}
+	return extData.ReadBytes(&out, len(*extData))
 
-	if !extData.ReadUint16LengthPrefixed(&dump) {
-		return false
-	}
-
-	if !extData.ReadUint16LengthPrefixed(&dump) {
-		return false
-	}
-
-	return true
 }
 
 func (e *PSKExtension) Clone() Extension {
