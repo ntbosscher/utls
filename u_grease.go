@@ -26,7 +26,7 @@ func getGrease(greaseSeed [greaseLastIndex]uint16, index int) uint16 {
 	return ret
 }
 
-func isGrease(v uint16) bool {
+func IsGrease(v uint16) bool {
 	aVals := v&0x0A0A == 0x0A0A
 	if !aVals {
 		return false
@@ -38,7 +38,7 @@ func isGrease(v uint16) bool {
 }
 
 func unGrease(v uint16) uint16 {
-	if isGrease(v) {
+	if IsGrease(v) {
 		return GreasePlaceholder
 	}
 

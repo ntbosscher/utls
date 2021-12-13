@@ -56,27 +56,6 @@ func cloneExtensions(exts []Extension) []Extension {
 	return ext2
 }
 
-type errorConn struct {
-	net.Conn
-	err error
-}
-
-func (e *errorConn) HandshakeContext(ctx context.Context) error {
-	return e.err
-}
-
-func (e *errorConn) Read(b []byte) (n int, err error) {
-	return 0, e.err
-}
-
-func (e *errorConn) Write(b []byte) (n int, err error) {
-	return 0, e.err
-}
-
-func (e *errorConn) ConnectionState() tls.ConnectionState {
-	panic(e.err)
-}
-
 // ForUHttp creates a tls connection that conforms to http.TLSConn
 func ForUHttp(conn net.Conn, ucfg *UConfig, cfg *tls.Config) (*UConn, error) {
 	c := ucfg.Clone()
@@ -235,7 +214,7 @@ func (u *UConn) setupHello(m *clientHelloMsg) (err error) {
 						updated := []KeyShare{}
 
 						for _, ks := range v.KeyShares {
-							if isGrease(uint16(ks.Group)) {
+							if IsGrease(uint16(ks.Group)) {
 								// copy grease ones directly
 								updated = append(updated, ks)
 								continue

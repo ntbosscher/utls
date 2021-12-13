@@ -33,7 +33,7 @@ func testHttpServer() context.CancelFunc {
 			MaxVersion: VersionTLS12,
 		},
 		// disables h2
-		//TLSNextProto: make(map[string]func(*http.Server, http.TLSConn, http.Handler)),
+		// TLSNextProto: make(map[string]func(*http.Server, http.TLSConn, http.Handler)),
 	}
 
 	ln, err := net.Listen("tcp", server.Addr)
@@ -57,7 +57,7 @@ func testHttpServer() context.CancelFunc {
 
 		keyExt := msg.Extensions.FindByTypeOrDefault(&KeyShareExtension{}).(*KeyShareExtension)
 		for i, ks := range keyExt.KeyShares {
-			if isGrease(uint16(ks.Group)) {
+			if IsGrease(uint16(ks.Group)) {
 				// retain grease data b/c it's consistent
 				continue
 			}
@@ -261,14 +261,9 @@ func TestMockChrome96(t *testing.T) {
 				InsecureSkipVerify: true,
 			},
 			GetTLSClient: func(conn net.Conn, cfg *tls.Config) http.TLSConn {
-				c := config.Clone()
-
-				c.ServerName = cfg.ServerName
-				c.InsecureSkipVerify = cfg.InsecureSkipVerify
-
-				cn, err := UClient(conn, c)
+				cn, err := ForUHttp(conn, config, cfg)
 				if err != nil {
-					return &errorConn{Conn: conn, err: err}
+					log.Println(err)
 				}
 
 				return cn
@@ -351,7 +346,7 @@ func removeGrease(input []uint16) []uint16 {
 	var out []uint16
 
 	for _, item := range input {
-		if !isGrease(item) {
+		if !IsGrease(item) {
 			out = append(out, item)
 		}
 	}

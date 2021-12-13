@@ -41,7 +41,7 @@ var RegisteredExtensions = []Extension{
 func GetExtensionForID(id uint16) Extension {
 	for _, ext := range RegisteredExtensions {
 		if v, ok := ext.(*GREASEExtension); ok {
-			if isGrease(id) {
+			if IsGrease(id) {
 				c := v.Clone().(*GREASEExtension)
 				c.Value = GreasePlaceholder
 				return c
