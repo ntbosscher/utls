@@ -77,6 +77,15 @@ func (e *errorConn) ConnectionState() tls.ConnectionState {
 	panic(e.err)
 }
 
+// ForUHttp creates a tls connection that conforms to http.TLSConn
+func ForUHttp(conn net.Conn, ucfg *UConfig, cfg *tls.Config) (*UConn, error) {
+	c := ucfg.Clone()
+	c.ServerName = cfg.ServerName
+	c.InsecureSkipVerify = cfg.InsecureSkipVerify
+
+	return UClient(conn, c)
+}
+
 type UConn struct {
 	*Conn
 	config *UConfig
