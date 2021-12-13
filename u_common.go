@@ -195,6 +195,10 @@ func (u *UConn) setupHello(m *clientHelloMsg) (err error) {
 						})
 
 						continue
+					case *PSKExtension:
+						if len(m.pskIdentities) == 0 {
+							continue // ignore if no pskIdentities
+						}
 					case *PaddingExtension:
 						if !v.WillPad {
 							continue

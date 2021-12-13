@@ -35,6 +35,7 @@ var RegisteredExtensions = []Extension{
 	&PSKKeyExchangeModesExtension{},
 	&PaddingExtension{},
 	&SupportedVersionsExtension{},
+	&PSKExtension{},
 	&GenericExtension{},
 }
 
@@ -540,8 +541,8 @@ func (e *SessionTicketExtension) MarshalBinary(b *cryptobyte.Builder, u *UConn, 
 }
 
 func (e *SessionTicketExtension) UnmarshalBinary(extData *cryptobyte.String) bool {
-	// do nothing
-	return true
+	buf := []byte{}
+	return extData.ReadBytes(&buf, len(*extData))
 }
 
 func (e *SessionTicketExtension) Clone() Extension {
@@ -717,6 +718,59 @@ func (e *PSKKeyExchangeModesExtension) UnmarshalJSON(b []byte) error {
 
 	*e = ext
 
+	return nil
+}
+
+type PSKExtension struct {
+}
+
+func (e *PSKExtension) ID() uint16 {
+	return extensionPreSharedKey
+}
+
+func (e *PSKExtension) MarshalBinary(b *cryptobyte.Builder, u *UConn, msg *clientHelloMsg) {
+	b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+		for _, psk := range msg.pskIdentities {
+			b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+				b.AddBytes(psk.label)
+			})
+			b.AddUint32(psk.obfuscatedTicketAge)
+		}
+	})
+	b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+		for _, binder := range msg.pskBinders {
+			b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+				b.AddBytes(binder)
+			})
+		}
+	})
+}
+
+func (e *PSKExtension) UnmarshalBinary(extData *cryptobyte.String) bool {
+	var dump cryptobyte.String
+
+	if !extData.ReadUint16LengthPrefixed(&dump) {
+		return false
+	}
+
+	if !extData.ReadUint16LengthPrefixed(&dump) {
+		return false
+	}
+
+	return true
+}
+
+func (e *PSKExtension) Clone() Extension {
+	return &PSKKeyExchangeModesExtension{}
+}
+
+func (e *PSKExtension) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{})
+}
+
+func (e *PSKExtension) UnmarshalJSON(b []byte) error {
+	ext := PSKExtension{}
+	*e = ext
 	return nil
 }
 

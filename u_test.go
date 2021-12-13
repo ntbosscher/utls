@@ -43,7 +43,7 @@ func testHttpServer() context.CancelFunc {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	callback := func(msg *ClientHelloResult, err error) {
+	callback := func(cn net.Conn, msg *ClientHelloResult, err error) {
 		if err != nil {
 			log.Println(err)
 			return
@@ -277,6 +277,13 @@ func TestMockChrome96(t *testing.T) {
 	}
 
 	rs, err := cli.Get("https://localhost:9001/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs.Body.Close()
+
+	rs, err = cli.Get("https://localhost:9001/")
 	if err != nil {
 		t.Fatal(err)
 	}
