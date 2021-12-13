@@ -100,6 +100,10 @@ const (
 	extensionSignatureAlgorithmsCert uint16 = 50
 	extensionKeyShare                uint16 = 51
 	extensionRenegotiationInfo       uint16 = 0xff01
+
+	// utls: added
+	extensionExtendedMasterSecret uint16 = 23 // https://tools.ietf.org/html/rfc7627
+	extensionPadding              uint16 = 21
 )
 
 // TLS signaling cipher suite values
@@ -122,9 +126,10 @@ const (
 )
 
 // TLS 1.3 Key Share. See RFC 8446, Section 4.2.8.
-type keyShare struct {
-	group CurveID
-	data  []byte
+// utls: expose so we can configure KeyShare for client hello
+type KeyShare struct {
+	Group CurveID
+	Data  []byte
 }
 
 // TLS 1.3 PSK Key Exchange Modes. See RFC 8446, Section 4.2.9.
@@ -490,7 +495,7 @@ func (c *CertificateRequestInfo) Context() context.Context {
 //
 // Even when enabled, the server may not change its identity between handshakes
 // (i.e. the leaf certificate must be the same). Additionally, concurrent
-// handshake and application data flow is not permitted so renegotiation can
+// handshake and application Data flow is not permitted so renegotiation can
 // only be used with protocols that synchronise with the renegotiation, such as
 // HTTPS.
 //
@@ -669,7 +674,7 @@ type Config struct {
 
 	// SessionTicketKey is used by TLS servers to provide session resumption.
 	// See RFC 5077 and the PSK mode of RFC 8446. If zero, it will be filled
-	// with random data before the first server handshake.
+	// with random Data before the first server handshake.
 	//
 	// Deprecated: if this field is left at zero, session ticket keys will be
 	// automatically rotated every day and dropped after seven days. For
@@ -822,7 +827,7 @@ func (c *Config) initLegacySessionTicketKeyRLocked() {
 		return
 	}
 
-	// We need to write some data, so get an exclusive lock and re-check any conditions.
+	// We need to write some Data, so get an exclusive lock and re-check any conditions.
 	c.mutex.RUnlock()
 	defer c.mutex.RLock()
 	c.mutex.Lock()
@@ -1438,9 +1443,9 @@ func (c *lruSessionCache) Get(sessionKey string) (*ClientSessionState, bool) {
 	return nil, false
 }
 
-var emptyConfig Config
+var emptyConfig UConfig
 
-func defaultConfig() *Config {
+func defaultConfig() *UConfig {
 	return &emptyConfig
 }
 

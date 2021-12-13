@@ -113,11 +113,11 @@ func (timeoutError) Temporary() bool { return true }
 //
 // DialWithDialer uses context.Background internally; to specify the context,
 // use Dialer.DialContext with NetDialer set to the desired dialer.
-func DialWithDialer(dialer *net.Dialer, network, addr string, config *Config) (*Conn, error) {
+func DialWithDialer(dialer *net.Dialer, network, addr string, config *UConfig) (*UConn, error) {
 	return dial(context.Background(), dialer, network, addr, config)
 }
 
-func dial(ctx context.Context, netDialer *net.Dialer, network, addr string, config *Config) (*Conn, error) {
+func dial(ctx context.Context, netDialer *net.Dialer, network, addr string, config *UConfig) (*UConn, error) {
 	if netDialer.Timeout != 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, netDialer.Timeout)
@@ -153,7 +153,12 @@ func dial(ctx context.Context, netDialer *net.Dialer, network, addr string, conf
 		config = c
 	}
 
-	conn := Client(rawConn, config)
+	// utls: wrap connection
+	conn, err := UClient(rawConn, config)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := conn.HandshakeContext(ctx); err != nil {
 		rawConn.Close()
 		return nil, err
@@ -167,7 +172,7 @@ func dial(ctx context.Context, netDialer *net.Dialer, network, addr string, conf
 // Dial interprets a nil configuration as equivalent to
 // the zero configuration; see the documentation of Config
 // for the defaults.
-func Dial(network, addr string, config *Config) (*Conn, error) {
+func Dial(network, addr string, config *UConfig) (*UConn, error) {
 	return DialWithDialer(new(net.Dialer), network, addr, config)
 }
 
@@ -183,7 +188,7 @@ type Dialer struct {
 	// A nil configuration is equivalent to the zero
 	// configuration; see the documentation of Config for the
 	// defaults.
-	Config *Config
+	Config *UConfig
 }
 
 // Dial connects to the given network address and initiates a TLS
@@ -223,7 +228,7 @@ func (d *Dialer) DialContext(ctx context.Context, network, addr string) (net.Con
 }
 
 // LoadX509KeyPair reads and parses a public/private key pair from a pair
-// of files. The files must contain PEM encoded data. The certificate file
+// of files. The files must contain PEM encoded Data. The certificate file
 // may contain intermediate certificates following the leaf certificate to
 // form a certificate chain. On successful return, Certificate.Leaf will
 // be nil because the parsed form of the certificate is not retained.
@@ -240,7 +245,7 @@ func LoadX509KeyPair(certFile, keyFile string) (Certificate, error) {
 }
 
 // X509KeyPair parses a public/private key pair from a pair of
-// PEM encoded data. On successful return, Certificate.Leaf will be nil because
+// PEM encoded Data. On successful return, Certificate.Leaf will be nil because
 // the parsed form of the certificate is not retained.
 func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 	fail := func(err error) (Certificate, error) { return Certificate{}, err }
@@ -262,10 +267,10 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 
 	if len(cert.Certificate) == 0 {
 		if len(skippedBlockTypes) == 0 {
-			return fail(errors.New("tls: failed to find any PEM data in certificate input"))
+			return fail(errors.New("tls: failed to find any PEM Data in certificate input"))
 		}
 		if len(skippedBlockTypes) == 1 && strings.HasSuffix(skippedBlockTypes[0], "PRIVATE KEY") {
-			return fail(errors.New("tls: failed to find certificate PEM data in certificate input, but did find a private key; PEM inputs may have been switched"))
+			return fail(errors.New("tls: failed to find certificate PEM Data in certificate input, but did find a private key; PEM inputs may have been switched"))
 		}
 		return fail(fmt.Errorf("tls: failed to find \"CERTIFICATE\" PEM block in certificate input after skipping PEM blocks of the following types: %v", skippedBlockTypes))
 	}
@@ -276,7 +281,7 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 		keyDERBlock, keyPEMBlock = pem.Decode(keyPEMBlock)
 		if keyDERBlock == nil {
 			if len(skippedBlockTypes) == 0 {
-				return fail(errors.New("tls: failed to find any PEM data in key input"))
+				return fail(errors.New("tls: failed to find any PEM Data in key input"))
 			}
 			if len(skippedBlockTypes) == 1 && skippedBlockTypes[0] == "CERTIFICATE" {
 				return fail(errors.New("tls: found a certificate rather than a key in the PEM for the private key"))

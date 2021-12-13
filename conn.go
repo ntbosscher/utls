@@ -25,13 +25,16 @@ import (
 // A Conn represents a secured connection.
 // It implements the net.Conn interface.
 type Conn struct {
+	// utls: reference to parent UConn
+	parent *UConn
+
 	// constant
 	conn        net.Conn
 	isClient    bool
 	handshakeFn func(context.Context) error // (*Conn).clientHandshake or serverHandshake
 
 	// handshakeStatus is 1 if the connection is currently transferring
-	// application data (i.e. is not currently processing a handshake).
+	// application Data (i.e. is not currently processing a handshake).
 	// This field is only to be accessed with sync/atomic.
 	handshakeStatus uint32
 	// constant after handshake; protected by handshakeMutex
@@ -94,19 +97,19 @@ type Conn struct {
 	// input/output
 	in, out   halfConn
 	rawInput  bytes.Buffer // raw input, starting with a record header
-	input     bytes.Reader // application data waiting to be read, from rawInput.Next
-	hand      bytes.Buffer // handshake data waiting to be read
+	input     bytes.Reader // application Data waiting to be read, from rawInput.Next
+	hand      bytes.Buffer // handshake Data waiting to be read
 	buffering bool         // whether records are buffered in sendBuf
 	sendBuf   []byte       // a buffer of records waiting to be sent
 
-	// bytesSent counts the bytes of application data sent.
+	// bytesSent counts the bytes of application Data sent.
 	// packetsSent counts packets.
 	bytesSent   int64
 	packetsSent int64
 
 	// retryCount counts the number of consecutive non-advancing records
 	// received by Conn.readRecord. That is, records that neither advance the
-	// handshake, nor deliver application data. Protected by in.Mutex.
+	// handshake, nor deliver application Data. Protected by in.Mutex.
 	retryCount int
 
 	// activeCall is an atomic int32; the low bit is whether Close has
@@ -275,7 +278,7 @@ func extractPadding(payload []byte) (toRemove int, good byte) {
 
 	// The maximum possible padding length plus the actual length field
 	toCheck := 256
-	// The length of the padded data is public, so we can use an if here
+	// The length of the padded Data is public, so we can use an if here
 	if toCheck > len(payload) {
 		toCheck = len(payload)
 	}
@@ -381,8 +384,8 @@ func (hc *halfConn) decrypt(record []byte) ([]byte, recordType, error) {
 			c.CryptBlocks(payload, payload)
 
 			// In a limited attempt to protect against CBC padding oracles like
-			// Lucky13, the data past paddingLen (which is secret) is passed to
-			// the MAC function as extra data, to be fed into the HMAC after
+			// Lucky13, the Data past paddingLen (which is secret) is passed to
+			// the MAC function as extra Data, to be fed into the HMAC after
 			// computing the digest. This makes the MAC roughly constant time as
 			// long as the digest computation is constant time and does not
 			// affect the subsequent write, modulo cache effects.
@@ -598,7 +601,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 
 	// This function modifies c.rawInput, which owns the c.input memory.
 	if c.input.Len() != 0 {
-		return c.in.setErrorLocked(errors.New("tls: internal error: attempted to read record with pending application data"))
+		return c.in.setErrorLocked(errors.New("tls: internal error: attempted to read record with pending application Data"))
 	}
 	c.input.Reset(nil)
 
@@ -736,7 +739,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 		if len(data) == 0 {
 			return c.retryReadRecord(expectChangeCipherSpec)
 		}
-		// Note that data is owned by c.rawInput, following the Next call above,
+		// Note that Data is owned by c.rawInput, following the Next call above,
 		// to avoid copying the plaintext. This is safe because c.rawInput is
 		// not read from or written to until c.input is drained.
 		c.input.Reset(data)
@@ -834,14 +837,14 @@ const (
 	// bytes) and a TCP header with timestamps (32 bytes).
 	tcpMSSEstimate = 1208
 
-	// recordSizeBoostThreshold is the number of bytes of application data
+	// recordSizeBoostThreshold is the number of bytes of application Data
 	// sent after which the TLS record size will be increased to the
 	// maximum.
 	recordSizeBoostThreshold = 128 * 1024
 )
 
 // maxPayloadSizeForWrite returns the maximum TLS payload size to use for the
-// next application data record. There is the following trade-off:
+// next application Data record. There is the following trade-off:
 //
 //   - For latency-sensitive applications, such as web browsing, each TLS
 //     record should fit in one TCP segment.
@@ -849,7 +852,7 @@ const (
 //     larger TLS records better amortize framing and encryption overheads.
 //
 // A simple heuristic that works well in practice is to use small records for
-// the first 1MB of data, then use larger records for subsequent data, and
+// the first 1MB of Data, then use larger records for subsequent Data, and
 // reset back to smaller records after the connection becomes idle. See "High
 // Performance Web Networking", Chapter 4, or:
 // https://www.igvita.com/2013/10/24/optimizing-tls-record-size-and-buffering-latency/
@@ -1076,7 +1079,7 @@ func (c *Conn) readHandshake() (interface{}, error) {
 	}
 
 	// The handshake message unmarshalers
-	// expect to be able to keep references to data,
+	// expect to be able to keep references to Data,
 	// so pass in a fresh copy that won't be overwritten.
 	data = append([]byte(nil), data...)
 
@@ -1090,7 +1093,7 @@ var (
 	errShutdown = errors.New("tls: protocol is shutdown")
 )
 
-// Write writes data to the connection.
+// Write writes Data to the connection.
 //
 // As Write calls Handshake, in order to prevent indefinite blocking a deadline
 // must be set for both Read and Write before Write is called when the handshake
@@ -1254,7 +1257,7 @@ func (c *Conn) handleKeyUpdate(keyUpdate *keyUpdateMsg) error {
 	return nil
 }
 
-// Read reads data from the connection.
+// Read reads Data from the connection.
 //
 // As Read calls Handshake, in order to prevent indefinite blocking a deadline
 // must be set for both Read and Write before Read is called when the handshake

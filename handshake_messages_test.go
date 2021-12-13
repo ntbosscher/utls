@@ -72,7 +72,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 				// The first three message types (ClientHello,
 				// ServerHello and Finished) are allowed to
 				// have parsable prefixes because the extension
-				// data is optional and the length of the
+				// Data is optional and the length of the
 				// Finished varies across versions.
 				for j := 0; j < len(marshaled); j++ {
 					if m2.unmarshal(marshaled[0:j]) {
@@ -169,9 +169,9 @@ func (*clientHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 		m.cookie = randomBytes(rand.Intn(500)+1, rand)
 	}
 	for i := 0; i < rand.Intn(5); i++ {
-		var ks keyShare
-		ks.group = CurveID(rand.Intn(30000) + 1)
-		ks.data = randomBytes(rand.Intn(200)+1, rand)
+		var ks KeyShare
+		ks.Group = CurveID(rand.Intn(30000) + 1)
+		ks.Data = randomBytes(rand.Intn(200)+1, rand)
 		m.keyShares = append(m.keyShares, ks)
 	}
 	switch rand.Intn(3) {
@@ -229,8 +229,8 @@ func (*serverHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	}
 	if rand.Intn(10) > 5 {
 		for i := 0; i < rand.Intn(5); i++ {
-			m.serverShare.group = CurveID(rand.Intn(30000) + 1)
-			m.serverShare.data = randomBytes(rand.Intn(200)+1, rand)
+			m.serverShare.Group = CurveID(rand.Intn(30000) + 1)
+			m.serverShare.Data = randomBytes(rand.Intn(200)+1, rand)
 		}
 	} else if rand.Intn(10) > 5 {
 		m.selectedGroup = CurveID(rand.Intn(30000) + 1)

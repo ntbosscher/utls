@@ -12,7 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"internal/testenv"
+	"github.com/ntbosscher/utls/internal/testenv"
 	"io"
 	"math"
 	"net"
@@ -228,7 +228,7 @@ func TestDeadlineOnWrite(t *testing.T) {
 
 	clientConfig := testConfig.Clone()
 	clientConfig.MaxVersion = VersionTLS12
-	conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
+	conn, err := Dial("tcp", ln.Addr().String(), toUConfig(clientConfig))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -245,7 +245,7 @@ func TestDeadlineOnWrite(t *testing.T) {
 		t.Errorf("Write err: %v", err)
 	}
 	if n, err := conn.Read(buf); n != 6 || err != nil || string(buf) != "foobar" {
-		t.Errorf("Read = %d, %v, data %q; want 6, nil, foobar", n, err, buf)
+		t.Errorf("Read = %d, %v, Data %q; want 6, nil, foobar", n, err, buf)
 	}
 
 	// Set a deadline which should cause Write to timeout
@@ -296,7 +296,7 @@ func TestDialer(t *testing.T) {
 	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	d := Dialer{Config: &Config{
+	d := Dialer{Config: toUConfig(&Config{
 		Rand: readerFunc(func(b []byte) (n int, err error) {
 			// By the time crypto/tls wants randomness, that means it has a TCP
 			// connection, so we're past the Dialer's dial and now blocked
@@ -307,7 +307,7 @@ func TestDialer(t *testing.T) {
 			return len(b), nil
 		}),
 		ServerName: "foo",
-	}}
+	})}
 	_, err := d.DialContext(ctx, "tcp", ln.Addr().String())
 	if err != context.Canceled {
 		t.Errorf("err = %v; want context.Canceled", err)
@@ -323,7 +323,7 @@ func isTimeoutError(err error) bool {
 
 // tests that Conn.Read returns (non-zero, io.EOF) instead of
 // (non-zero, nil) when a Close (alertCloseNotify) is sitting right
-// behind the application data in the buffer.
+// behind the application Data in the buffer.
 func TestConnReadNonzeroAndEOF(t *testing.T) {
 	// This test is racy: it assumes that after a write to a
 	// localhost TCP connection, the peer TCP connection can
@@ -367,10 +367,10 @@ func testConnReadNonzeroAndEOF(t *testing.T, delay time.Duration) error {
 	}()
 
 	clientConfig := testConfig.Clone()
-	// In TLS 1.3, alerts are encrypted and disguised as application data, so
+	// In TLS 1.3, alerts are encrypted and disguised as application Data, so
 	// the opportunistic peek won't work.
 	clientConfig.MaxVersion = VersionTLS12
-	conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
+	conn, err := Dial("tcp", ln.Addr().String(), toUConfig(clientConfig))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -386,7 +386,7 @@ func testConnReadNonzeroAndEOF(t *testing.T, delay time.Duration) error {
 	srv.Write([]byte("foobar"))
 	n, err := conn.Read(buf)
 	if n != 6 || err != nil || string(buf) != "foobar" {
-		return fmt.Errorf("Read = %d, %v, data %q; want 6, nil, foobar", n, err, buf)
+		return fmt.Errorf("Read = %d, %v, Data %q; want 6, nil, foobar", n, err, buf)
 	}
 
 	srv.Write([]byte("abcdef"))
@@ -435,7 +435,7 @@ func TestTLSUniqueMatches(t *testing.T) {
 
 	clientConfig := testConfig.Clone()
 	clientConfig.ClientSessionCache = NewLRUClientSessionCache(1)
-	conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
+	conn, err := Dial("tcp", ln.Addr().String(), toUConfig(clientConfig))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -452,7 +452,7 @@ func TestTLSUniqueMatches(t *testing.T) {
 	}
 	conn.Close()
 
-	conn, err = Dial("tcp", ln.Addr().String(), clientConfig)
+	conn, err = Dial("tcp", ln.Addr().String(), toUConfig(clientConfig))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -486,7 +486,7 @@ func TestVerifyHostname(t *testing.T) {
 		t.Fatalf("verify www.yahoo.com succeeded")
 	}
 
-	c, err = Dial("tcp", "www.google.com:https", &Config{InsecureSkipVerify: true})
+	c, err = Dial("tcp", "www.google.com:https", toUConfig(&Config{InsecureSkipVerify: true}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -599,7 +599,7 @@ func TestConnCloseWrite(t *testing.T) {
 			return err
 		}
 		if len(data) > 0 {
-			return fmt.Errorf("Read data = %q; want nothing", data)
+			return fmt.Errorf("Read Data = %q; want nothing", data)
 		}
 
 		if err := srv.CloseWrite(); err != nil {
@@ -618,7 +618,7 @@ func TestConnCloseWrite(t *testing.T) {
 		defer close(clientDoneChan)
 
 		clientConfig := testConfig.Clone()
-		conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
+		conn, err := Dial("tcp", ln.Addr().String(), toUConfig(clientConfig))
 		if err != nil {
 			return err
 		}
@@ -640,7 +640,7 @@ func TestConnCloseWrite(t *testing.T) {
 			return err
 		}
 		if len(data) > 0 {
-			return fmt.Errorf("Read data = %q; want nothing", data)
+			return fmt.Errorf("Read Data = %q; want nothing", data)
 		}
 		return nil
 	}
@@ -715,7 +715,7 @@ func TestWarningAlertFlood(t *testing.T) {
 
 	clientConfig := testConfig.Clone()
 	clientConfig.MaxVersion = VersionTLS12 // there are no warning alerts in TLS 1.3
-	conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
+	conn, err := Dial("tcp", ln.Addr().String(), toUConfig(clientConfig))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -911,7 +911,7 @@ func throughput(b *testing.B, version uint16, totalBytes int64, dynamicRecordSiz
 	buf := make([]byte, bufsize)
 	chunks := int(math.Ceil(float64(totalBytes) / float64(len(buf))))
 	for i := 0; i < N; i++ {
-		conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
+		conn, err := Dial("tcp", ln.Addr().String(), toUConfig(clientConfig))
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -1005,7 +1005,7 @@ func latency(b *testing.B, version uint16, bps int, dynamicRecordSizingDisabled 
 	peek := make([]byte, 1)
 
 	for i := 0; i < N; i++ {
-		conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
+		conn, err := Dial("tcp", ln.Addr().String(), toUConfig(clientConfig))
 		if err != nil {
 			b.Fatal(err)
 		}

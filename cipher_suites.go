@@ -14,8 +14,8 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"fmt"
-	"hash"
 	"github.com/ntbosscher/utls/internal/cpu"
+	"hash"
 	"runtime"
 
 	"golang.org/x/crypto/chacha20poly1305"

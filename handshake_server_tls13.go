@@ -64,7 +64,7 @@ func (hs *serverHandshakeStateTLS13) handshake() error {
 	if err := hs.sendServerFinished(); err != nil {
 		return err
 	}
-	// Note that at this point we could start sending application data without
+	// Note that at this point we could start sending application Data without
 	// waiting for the client's second flight, but the application might not
 	// expect the lack of replay protection of the ClientHello parameters.
 	if _, err := c.flush(); err != nil {
@@ -138,12 +138,12 @@ func (hs *serverHandshakeStateTLS13) processClientHello() error {
 	if hs.clientHello.earlyData {
 		// See RFC 8446, Section 4.2.10 for the complicated behavior required
 		// here. The scenario is that a different server at our address offered
-		// to accept early data in the past, which we can't handle. For now, all
+		// to accept early Data in the past, which we can't handle. For now, all
 		// 0-RTT enabled session tickets need to expire before a Go server can
 		// replace a server or join a pool. That's the same requirement that
 		// applies to mixing or replacing with any TLS 1.2 server.
 		c.sendAlert(alertUnsupportedExtension)
-		return errors.New("tls: client sent unexpected early data")
+		return errors.New("tls: client sent unexpected early Data")
 	}
 
 	hs.hello.sessionId = hs.clientHello.sessionId
@@ -167,15 +167,15 @@ func (hs *serverHandshakeStateTLS13) processClientHello() error {
 	hs.hello.cipherSuite = hs.suite.id
 	hs.transcript = hs.suite.hash.New()
 
-	// Pick the ECDHE group in server preference order, but give priority to
+	// Pick the ECDHE Group in server preference order, but give priority to
 	// groups with a key share, to avoid a HelloRetryRequest round-trip.
 	var selectedGroup CurveID
-	var clientKeyShare *keyShare
+	var clientKeyShare *KeyShare
 GroupSelection:
 	for _, preferredGroup := range c.config.curvePreferences() {
 		for _, ks := range hs.clientHello.keyShares {
-			if ks.group == preferredGroup {
-				selectedGroup = ks.group
+			if ks.Group == preferredGroup {
+				selectedGroup = ks.Group
 				clientKeyShare = &ks
 				break GroupSelection
 			}
@@ -210,8 +210,8 @@ GroupSelection:
 		c.sendAlert(alertInternalError)
 		return err
 	}
-	hs.hello.serverShare = keyShare{group: selectedGroup, data: params.PublicKey()}
-	hs.sharedKey = params.SharedKey(clientKeyShare.data)
+	hs.hello.serverShare = KeyShare{Group: selectedGroup, Data: params.PublicKey()}
+	hs.sharedKey = params.SharedKey(clientKeyShare.Data)
 	if hs.sharedKey == nil {
 		c.sendAlert(alertIllegalParameter)
 		return errors.New("tls: invalid client key share")
@@ -433,14 +433,14 @@ func (hs *serverHandshakeStateTLS13) doHelloRetryRequest(selectedGroup CurveID) 
 		return unexpectedMessageError(clientHello, msg)
 	}
 
-	if len(clientHello.keyShares) != 1 || clientHello.keyShares[0].group != selectedGroup {
+	if len(clientHello.keyShares) != 1 || clientHello.keyShares[0].Group != selectedGroup {
 		c.sendAlert(alertIllegalParameter)
 		return errors.New("tls: client sent invalid key share in second ClientHello")
 	}
 
 	if clientHello.earlyData {
 		c.sendAlert(alertIllegalParameter)
-		return errors.New("tls: client indicated early data in second ClientHello")
+		return errors.New("tls: client indicated early Data in second ClientHello")
 	}
 
 	if illegalClientHelloChange(clientHello, hs.clientHello) {

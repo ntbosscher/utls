@@ -670,7 +670,7 @@ func (test *serverTest) run(t *testing.T, write bool) {
 	if !write {
 		flows, err := test.loadData()
 		if err != nil {
-			t.Fatalf("%s: failed to load data from %s", test.name, test.dataPath())
+			t.Fatalf("%s: failed to load Data from %s", test.name, test.dataPath())
 		}
 		for i, b := range flows {
 			if i%2 == 0 {
@@ -1910,7 +1910,7 @@ func TestAESCipherReorderingTLS13(t *testing.T) {
 					cipherSuites:       tc.clientCiphers,
 					supportedVersions:  []uint16{VersionTLS13},
 					compressionMethods: []uint8{compressionNone},
-					keyShares:          []keyShare{{group: X25519, data: curve25519.Basepoint}},
+					keyShares:          []KeyShare{{Group: X25519, Data: curve25519.Basepoint}},
 				},
 			}
 

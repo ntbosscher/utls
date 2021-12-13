@@ -91,18 +91,38 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 	configCipherSuites := config.cipherSuites()
 	hello.cipherSuites = make([]uint16, 0, len(configCipherSuites))
 
-	for _, suiteId := range preferenceOrder {
-		suite := mutualCipherSuite(configCipherSuites, suiteId)
-		if suite == nil {
-			continue
+	// utls: need to preserve order from config and allow for ciphers we don't actually support
+	for _, suiteId := range configCipherSuites {
+
+		suite := cipherSuiteByID(suiteId)
+
+		// if this is an unsupported cipher suite, blindly add to list
+		if suite != nil {
+			// Don't advertise TLS 1.2-only cipher suites unless
+			// we're attempting TLS 1.2.
+			if hello.vers < VersionTLS12 && suite.flags&suiteTLS12 != 0 {
+				continue
+			}
 		}
-		// Don't advertise TLS 1.2-only cipher suites unless
-		// we're attempting TLS 1.2.
-		if hello.vers < VersionTLS12 && suite.flags&suiteTLS12 != 0 {
-			continue
-		}
+
 		hello.cipherSuites = append(hello.cipherSuites, suiteId)
 	}
+
+	// pretend to use preferenceOrder for compiler
+	_ = preferenceOrder[0]
+
+	//for _, suiteId := range preferenceOrder {
+	//	suite := mutualCipherSuite(configCipherSuites, suiteId)
+	//	if suite == nil {
+	//		continue
+	//	}
+	//	// Don't advertise TLS 1.2-only cipher suites unless
+	//	// we're attempting TLS 1.2.
+	//	if hello.vers < VersionTLS12 && suite.flags&suiteTLS12 != 0 {
+	//		continue
+	//	}
+	//	hello.cipherSuites = append(hello.cipherSuites, suiteId)
+	//}
 
 	_, err := io.ReadFull(config.rand(), hello.random)
 	if err != nil {
@@ -122,11 +142,12 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 
 	var params ecdheParameters
 	if hello.supportedVersions[0] == VersionTLS13 {
-		if hasAESGCMHardwareSupport {
-			hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13...)
-		} else {
-			hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13NoAES...)
-		}
+		// utls: don't mess with cipherSuites, just use what's in .config
+		//if hasAESGCMHardwareSupport {
+		//	hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13...)
+		//} else {
+		//	hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13NoAES...)
+		//}
 
 		curveID := config.curvePreferences()[0]
 		if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
@@ -136,7 +157,7 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		hello.keyShares = []keyShare{{group: curveID, data: params.PublicKey()}}
+		hello.keyShares = []KeyShare{{Group: curveID, Data: params.PublicKey()}}
 	}
 
 	return hello, params, nil
@@ -144,7 +165,9 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 
 func (c *Conn) clientHandshake(ctx context.Context) (err error) {
 	if c.config == nil {
-		c.config = defaultConfig()
+		// utls: must have set .config in obj construction
+		// c.config = defaultConfig()
+		return errors.New("missing .config")
 	}
 
 	// This may be a renegotiation handshake, in which case some fields
@@ -170,6 +193,12 @@ func (c *Conn) clientHandshake(ctx context.Context) (err error) {
 				c.config.ClientSessionCache.Put(cacheKey, nil)
 			}
 		}()
+	}
+
+	if c.parent != nil {
+		if err := c.parent.setupHello(hello); err != nil {
+			return err
+		}
 	}
 
 	if _, err := c.writeRecord(recordTypeHandshake, hello.marshal()); err != nil {
@@ -213,6 +242,10 @@ func (c *Conn) clientHandshake(ctx context.Context) (err error) {
 			session:     session,
 			earlySecret: earlySecret,
 			binderKey:   binderKey,
+		}
+
+		if c.parent != nil {
+			c.parent.processServerHelloTLS13(hs)
 		}
 
 		// In TLS 1.3, session tickets are delivered after the handshake.

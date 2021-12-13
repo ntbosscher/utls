@@ -87,7 +87,7 @@ type clientHelloMsg struct {
 	scts                             bool
 	supportedVersions                []uint16
 	cookie                           []byte
-	keyShares                        []keyShare
+	keyShares                        []KeyShare
 	earlyData                        bool
 	pskModes                         []uint8
 	pskIdentities                    []pskIdentity
@@ -95,6 +95,7 @@ type clientHelloMsg struct {
 }
 
 func (m *clientHelloMsg) marshal() []byte {
+	// utls: required for setupHello() to work
 	if m.raw != nil {
 		return m.raw
 	}
@@ -244,9 +245,9 @@ func (m *clientHelloMsg) marshal() []byte {
 				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
 					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
 						for _, ks := range m.keyShares {
-							b.AddUint16(uint16(ks.group))
+							b.AddUint16(uint16(ks.Group))
 							b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-								b.AddBytes(ks.data)
+								b.AddBytes(ks.Data)
 							})
 						}
 					})
@@ -376,7 +377,7 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 	}
 
 	if s.Empty() {
-		// ClientHello is optionally followed by extension data
+		// ClientHello is optionally followed by extension Data
 		return true
 	}
 
@@ -530,10 +531,10 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 				return false
 			}
 			for !clientShares.Empty() {
-				var ks keyShare
-				if !clientShares.ReadUint16((*uint16)(&ks.group)) ||
-					!readUint16LengthPrefixed(&clientShares, &ks.data) ||
-					len(ks.data) == 0 {
+				var ks KeyShare
+				if !clientShares.ReadUint16((*uint16)(&ks.Group)) ||
+					!readUint16LengthPrefixed(&clientShares, &ks.Data) ||
+					len(ks.Data) == 0 {
 					return false
 				}
 				m.keyShares = append(m.keyShares, ks)
@@ -603,7 +604,7 @@ type serverHelloMsg struct {
 	alpnProtocol                 string
 	scts                         [][]byte
 	supportedVersion             uint16
-	serverShare                  keyShare
+	serverShare                  KeyShare
 	selectedIdentityPresent      bool
 	selectedIdentity             uint16
 	supportedPoints              []uint8
@@ -678,12 +679,12 @@ func (m *serverHelloMsg) marshal() []byte {
 					b.AddUint16(m.supportedVersion)
 				})
 			}
-			if m.serverShare.group != 0 {
+			if m.serverShare.Group != 0 {
 				b.AddUint16(extensionKeyShare)
 				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-					b.AddUint16(uint16(m.serverShare.group))
+					b.AddUint16(uint16(m.serverShare.Group))
 					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-						b.AddBytes(m.serverShare.data)
+						b.AddBytes(m.serverShare.Data)
 					})
 				})
 			}
@@ -742,7 +743,7 @@ func (m *serverHelloMsg) unmarshal(data []byte) bool {
 	}
 
 	if s.Empty() {
-		// ServerHello is optionally followed by extension data
+		// ServerHello is optionally followed by extension Data
 		return true
 	}
 
@@ -810,8 +811,8 @@ func (m *serverHelloMsg) unmarshal(data []byte) bool {
 					return false
 				}
 			} else {
-				if !extData.ReadUint16((*uint16)(&m.serverShare.group)) ||
-					!readUint16LengthPrefixed(&extData, &m.serverShare.data) {
+				if !extData.ReadUint16((*uint16)(&m.serverShare.Group)) ||
+					!readUint16LengthPrefixed(&extData, &m.serverShare.Data) {
 					return false
 				}
 			}

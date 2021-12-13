@@ -62,7 +62,7 @@ func runTestAndUpdateIfNeeded(t *testing.T, name string, run func(t *testing.T, 
 }
 
 // checkOpenSSLVersion ensures that the version of OpenSSL looks reasonable
-// before updating the test data.
+// before updating the test Data.
 func checkOpenSSLVersion() error {
 	if !*update {
 		return nil
@@ -82,14 +82,14 @@ func checkOpenSSLVersion() error {
 	println("***********************************************")
 	println("")
 	println("You need to build OpenSSL 1.1.1 from source in order")
-	println("to update the test data.")
+	println("to update the test Data.")
 	println("")
 	println("Configure it with:")
 	println("./Configure enable-weak-ssl-ciphers no-shared")
 	println("and then add the apps/ directory at the front of your PATH.")
 	println("***********************************************")
 
-	return errors.New("version of OpenSSL does not appear to be suitable for updating test data")
+	return errors.New("version of OpenSSL does not appear to be suitable for updating test Data")
 }
 
 // recordingConn is a net.Conn that records the traffic that passes through it.
@@ -195,20 +195,20 @@ func parseTestData(r io.Reader) (flows [][]byte, err error) {
 		if i := strings.IndexByte(line, ' '); i >= 0 {
 			line = line[i:]
 		} else {
-			return nil, errors.New("invalid test data")
+			return nil, errors.New("invalid test Data")
 		}
 
 		if i := strings.IndexByte(line, '|'); i >= 0 {
 			line = line[:i]
 		} else {
-			return nil, errors.New("invalid test data")
+			return nil, errors.New("invalid test Data")
 		}
 
 		hexBytes := strings.Fields(line)
 		for _, hexByte := range hexBytes {
 			val, err := strconv.ParseUint(hexByte, 16, 8)
 			if err != nil {
-				return nil, errors.New("invalid hex byte in test data: " + err.Error())
+				return nil, errors.New("invalid hex byte in test Data: " + err.Error())
 			}
 			currentFlow = append(currentFlow, byte(val))
 		}

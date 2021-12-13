@@ -135,9 +135,9 @@ type clientTest struct {
 	// key, if not nil, contains either a *rsa.PrivateKey, ed25519.PrivateKey or
 	// *ecdsa.PrivateKey which is the private key for the reference server.
 	key interface{}
-	// extensions, if not nil, contains a list of extension data to be returned
-	// from the ServerHello. The data should be in standard TLS format with
-	// a 2-byte uint16 type, 2-byte data length, followed by the extension data.
+	// extensions, if not nil, contains a list of extension Data to be returned
+	// from the ServerHello. The Data should be in standard TLS format with
+	// a 2-byte uint16 type, 2-byte Data length, followed by the extension Data.
 	extensions [][]byte
 	// validate, if not nil, is a function that will be called with the
 	// ConnectionState of the resulting connection. It returns a non-nil
@@ -327,7 +327,7 @@ func (test *clientTest) run(t *testing.T, write bool) {
 				<-stdout.handshakeComplete
 			}
 
-			// OpenSSL will try to interleave application data and
+			// OpenSSL will try to interleave application Data and
 			// a renegotiation if we send both concurrently.
 			// Therefore: ask OpensSSL to start a renegotiation, run
 			// a goroutine to call client.Read and thus process the
@@ -404,7 +404,7 @@ func (test *clientTest) run(t *testing.T, write bool) {
 
 			if write {
 				// There's no real reason to wait for the client KeyUpdate to
-				// send data with the new server keys, except that s_server
+				// send Data with the new server keys, except that s_server
 				// drops writes if they are sent at the wrong time.
 				<-stdout.readKeyUpdate
 				stdin <- opensslSendSentinel
@@ -435,7 +435,7 @@ func (test *clientTest) run(t *testing.T, write bool) {
 	if !write {
 		flows, err := test.loadData()
 		if err != nil {
-			t.Fatalf("%s: failed to load data from %s: %v", test.name, test.dataPath(), err)
+			t.Fatalf("%s: failed to load Data from %s: %v", test.name, test.dataPath(), err)
 		}
 		for i, b := range flows {
 			if i%2 == 1 {
@@ -492,7 +492,7 @@ func (test *clientTest) run(t *testing.T, write bool) {
 func peekError(conn net.Conn) error {
 	conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 	if n, err := conn.Read(make([]byte, 1)); n != 0 {
-		return errors.New("unexpectedly read data")
+		return errors.New("unexpectedly read Data")
 	} else if err != nil {
 		if netErr, ok := err.(net.Error); !ok || !netErr.Timeout() {
 			return err
@@ -1274,7 +1274,7 @@ func TestServerSelectingUnconfiguredApplicationProtocol(t *testing.T) {
 	}
 }
 
-// sctsBase64 contains data from `openssl s_client -serverinfo 18 -connect ritter.vg:443`
+// sctsBase64 contains Data from `openssl s_client -serverinfo 18 -connect ritter.vg:443`
 const sctsBase64 = "ABIBaQFnAHUApLkJkLQYWBSHuxOizGdwCjw1mAT5G9+443fNDsgN3BAAAAFHl5nuFgAABAMARjBEAiAcS4JdlW5nW9sElUv2zvQyPoZ6ejKrGGB03gjaBZFMLwIgc1Qbbn+hsH0RvObzhS+XZhr3iuQQJY8S9G85D9KeGPAAdgBo9pj4H2SCvjqM7rkoHUz8cVFdZ5PURNEKZ6y7T0/7xAAAAUeX4bVwAAAEAwBHMEUCIDIhFDgG2HIuADBkGuLobU5a4dlCHoJLliWJ1SYT05z6AiEAjxIoZFFPRNWMGGIjskOTMwXzQ1Wh2e7NxXE1kd1J0QsAdgDuS723dc5guuFCaR+r4Z5mow9+X7By2IMAxHuJeqj9ywAAAUhcZIqHAAAEAwBHMEUCICmJ1rBT09LpkbzxtUC+Hi7nXLR0J+2PmwLp+sJMuqK+AiEAr0NkUnEVKVhAkccIFpYDqHOlZaBsuEhWWrYpg2RtKp0="
 
 func TestHandshakClientSCTs(t *testing.T) {
@@ -2239,7 +2239,7 @@ var getClientCertificateTests = []struct {
 }{
 	{
 		func(clientConfig, serverConfig *Config) {
-			// Returning a Certificate with no certificate data
+			// Returning a Certificate with no certificate Data
 			// should result in an empty message being sent to the
 			// server.
 			serverConfig.ClientCAs = nil
