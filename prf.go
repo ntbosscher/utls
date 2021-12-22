@@ -79,6 +79,8 @@ const (
 	finishedVerifyLength = 12 // Length of verify_data in a Finished message.
 )
 
+// utls: extended master secret support
+var extendedMasterSecretLabel = []byte("extended master secret")
 var masterSecretLabel = []byte("master secret")
 var keyExpansionLabel = []byte("key expansion")
 var clientFinishedLabel = []byte("client finished")
@@ -112,6 +114,15 @@ func masterFromPreMasterSecret(version uint16, suite *cipherSuite, preMasterSecr
 
 	masterSecret := make([]byte, masterSecretLength)
 	prfForVersion(version, suite)(masterSecret, preMasterSecret, masterSecretLabel, seed)
+	return masterSecret
+}
+
+// utlsMasterFromPreMasterSecret modified version of masterFromPreMasterSecret
+func utlsMasterFromPreMasterSecret(version uint16, suite *cipherSuite, label []byte, preMasterSecret, random []byte) []byte {
+	seed := append([]byte{}, random...)
+
+	masterSecret := make([]byte, masterSecretLength)
+	prfForVersion(version, suite)(masterSecret, preMasterSecret, label, seed)
 	return masterSecret
 }
 

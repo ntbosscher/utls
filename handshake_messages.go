@@ -92,6 +92,8 @@ type clientHelloMsg struct {
 	pskModes                         []uint8
 	pskIdentities                    []pskIdentity
 	pskBinders                       [][]byte
+	// utls
+	extendedMasterSecretSupported bool
 }
 
 func (m *clientHelloMsg) marshal() []byte {
@@ -608,6 +610,8 @@ type serverHelloMsg struct {
 	selectedIdentityPresent      bool
 	selectedIdentity             uint16
 	supportedPoints              []uint8
+	// utls
+	extendedMasterSecretSupported bool
 
 	// HelloRetryRequest extensions
 	cookie        []byte
@@ -827,6 +831,9 @@ func (m *serverHelloMsg) unmarshal(data []byte) bool {
 				len(m.supportedPoints) == 0 {
 				return false
 			}
+		case extensionExtendedMasterSecret:
+			// utls
+			m.extendedMasterSecretSupported = true
 		default:
 			// Ignore unknown extensions.
 			continue

@@ -674,7 +674,17 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		}
 	}
 
-	hs.masterSecret = masterFromPreMasterSecret(c.vers, hs.suite, preMasterSecret, hs.hello.random, hs.serverHello.random)
+	// utls: implement extended master secret (https://datatracker.ietf.org/doc/html/rfc7627#section-4)
+	if hs.hello.extendedMasterSecretSupported && hs.serverHello.extendedMasterSecretSupported {
+		sessionHash := hs.finishedHash.Sum()
+		hs.masterSecret = utlsMasterFromPreMasterSecret(c.vers, hs.suite, extendedMasterSecretLabel, preMasterSecret, sessionHash)
+	} else {
+		random := make([]byte, 0, len(hs.hello.random)+len(hs.serverHello.random))
+		random = append(random, hs.hello.random...)
+		random = append(random, hs.serverHello.random...)
+		hs.masterSecret = utlsMasterFromPreMasterSecret(c.vers, hs.suite, masterSecretLabel, preMasterSecret, random)
+	}
+
 	if err := c.config.writeKeyLog(keyLogLabelTLS12, hs.hello.random, hs.masterSecret); err != nil {
 		c.sendAlert(alertInternalError)
 		return errors.New("tls: failed to write to key log: " + err.Error())

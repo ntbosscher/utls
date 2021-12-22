@@ -254,6 +254,8 @@ func (u *UConn) setupHello(m *clientHelloMsg) (err error) {
 						}
 
 						v.KeyShares = updated
+					case *ExtendedMasterSecretExtension:
+						m.extendedMasterSecretSupported = true
 					}
 
 					b.AddUint16(ext.ID())
