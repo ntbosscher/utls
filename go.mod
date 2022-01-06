@@ -8,6 +8,8 @@ require (
 )
 
 require (
+	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/ntbosscher/uhttp v0.0.0-20211119132930-98c7081eb523 // indirect
 	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
 	golang.org/x/text v0.3.6 // indirect

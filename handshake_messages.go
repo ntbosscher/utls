@@ -5,7 +5,12 @@
 package tls
 
 import (
+	"bytes"
+	"compress/zlib"
 	"fmt"
+	"github.com/andybalholm/brotli"
+	"github.com/klauspost/compress/zstd"
+	"io"
 	"strings"
 
 	"golang.org/x/crypto/cryptobyte"
@@ -1285,6 +1290,77 @@ func (m *certificateMsg) unmarshal(data []byte) bool {
 	return true
 }
 
+const (
+	certCompressionZlib   = 1
+	certCompressionBrotli = 2
+	certCompressionZstd   = 3 // https://datatracker.ietf.org/doc/html/rfc8879
+)
+
+// https://datatracker.ietf.org/doc/html/rfc8879
+type compressedCertificateMsgTLS13 struct {
+	bytesForTranscript []byte
+	compressionAlgo    uint16
+	uncompressedLength uint32 // uint24
+	compressed         []byte
+
+	*certificateMsgTLS13
+}
+
+func (m *compressedCertificateMsgTLS13) unmarshal(data []byte) bool {
+	*m = compressedCertificateMsgTLS13{
+		compressed:          []byte{},
+		bytesForTranscript:  append([]byte{}, data...), // clone
+		certificateMsgTLS13: &certificateMsgTLS13{},
+	}
+
+	s := cryptobyte.String(data)
+	inner := cryptobyte.String{}
+
+	if !s.Skip(4) || // message type and uint24 length field
+		!s.ReadUint16(&m.compressionAlgo) ||
+		!s.ReadUint24(&m.uncompressedLength) ||
+		!s.ReadUint24LengthPrefixed(&inner) {
+		return false
+	}
+
+	if !inner.ReadBytes(&m.compressed, len(inner)) {
+		return false
+	}
+
+	var rd io.Reader
+	var err error
+
+	switch m.compressionAlgo {
+	case certCompressionZlib:
+		rd, err = zlib.NewReader(bytes.NewReader(m.compressed))
+	case certCompressionBrotli:
+		rd = brotli.NewReader(bytes.NewReader(m.compressed))
+	case certCompressionZstd:
+		rd, err = zstd.NewReader(bytes.NewReader(m.compressed))
+	default:
+		return false
+	}
+
+	if err != nil {
+		return false
+	}
+
+	uncompressed, err := io.ReadAll(rd)
+	if err != nil {
+		return false
+	}
+
+	if len(uncompressed) != int(m.uncompressedLength) {
+		return false
+	}
+
+	if !m.certificateMsgTLS13.unmarshalInner(uncompressed, false) {
+		return false
+	}
+
+	return true
+}
+
 type certificateMsgTLS13 struct {
 	raw          []byte
 	certificate  Certificate
@@ -1354,12 +1430,21 @@ func marshalCertificate(b *cryptobyte.Builder, certificate Certificate) {
 }
 
 func (m *certificateMsgTLS13) unmarshal(data []byte) bool {
+	return m.unmarshalInner(data, true)
+}
+
+func (m *certificateMsgTLS13) unmarshalInner(data []byte, hasMessageHeader bool) bool {
 	*m = certificateMsgTLS13{raw: data}
 	s := cryptobyte.String(data)
 
 	var context cryptobyte.String
-	if !s.Skip(4) || // message type and uint24 length field
-		!s.ReadUint8LengthPrefixed(&context) || !context.Empty() ||
+	if hasMessageHeader {
+		if !s.Skip(4) { // message type and uint24 length field
+			return false
+		}
+	}
+
+	if !s.ReadUint8LengthPrefixed(&context) || !context.Empty() ||
 		!unmarshalCertificate(&s, &m.certificate) ||
 		!s.Empty() {
 		return false

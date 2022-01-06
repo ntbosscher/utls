@@ -442,14 +442,23 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 
 	certMsg, ok := msg.(*certificateMsgTLS13)
 	if !ok {
-		c.sendAlert(alertUnexpectedMessage)
-		return unexpectedMessageError(certMsg, msg)
+		var compressedCertMsg *compressedCertificateMsgTLS13
+		compressedCertMsg, ok = msg.(*compressedCertificateMsgTLS13)
+		if !ok {
+			c.sendAlert(alertUnexpectedMessage)
+			return unexpectedMessageError(certMsg, msg)
+		}
+
+		certMsg = compressedCertMsg.certificateMsgTLS13
+		hs.transcript.Write(compressedCertMsg.bytesForTranscript)
+	} else {
+		hs.transcript.Write(certMsg.marshal())
 	}
+
 	if len(certMsg.certificate.Certificate) == 0 {
 		c.sendAlert(alertDecodeError)
 		return errors.New("tls: received empty certificates message")
 	}
-	hs.transcript.Write(certMsg.marshal())
 
 	c.scts = certMsg.certificate.SignedCertificateTimestamps
 	c.ocspResponse = certMsg.certificate.OCSPStaple

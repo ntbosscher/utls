@@ -1046,6 +1046,13 @@ func (c *Conn) readHandshake() (interface{}, error) {
 		} else {
 			m = new(certificateMsg)
 		}
+	case typeCompressedCertificate:
+		if c.vers == VersionTLS13 {
+			m = new(compressedCertificateMsgTLS13)
+		} else {
+			// only supported in tls 1.3+
+			return nil, c.in.setErrorLocked(c.sendAlert(alertUnexpectedMessage))
+		}
 	case typeCertificateRequest:
 		if c.vers == VersionTLS13 {
 			m = new(certificateRequestMsgTLS13)

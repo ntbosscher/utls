@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"os"
 	"testing"
 	"time"
 )
@@ -301,4 +302,92 @@ func TestMockChrome96(t *testing.T) {
 	dt, _ := ioutil.ReadAll(rs.Body)
 
 	fmt.Println(string(dt))
+}
+
+func TestT(t *testing.T) {
+	config, err := GetUConfigFromClientHello(extBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cache := NewLRUClientSessionCache(10)
+
+	cli := http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+			GetTLSClient: func(conn net.Conn, cfg *tls.Config) http.TLSConn {
+				cn, err := ForUHttp(conn, config, cfg)
+				if err != nil {
+					log.Println(err)
+				}
+
+				cn.config.ClientSessionCache = cache
+				return cn
+			},
+			ForceAttemptHTTP2: config.AttemptHTTP2(),
+		},
+	}
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs, err := cli.Get("https://sd.iperceptions.com/ius-359cd6b861125d638f6cea04ffb14739/17331_637683606272607641")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs.Write(os.Stdout)
+	rs.Body.Close()
+
+	rs, err = cli.Get("https://am.contobox.com/v3/frontend/creatives/getcode.js?ph_id=cbox_ph_4241673&zone_id=74065&clientparam=&lid=%7B%22a%22%3A%22rona.ca%22%7D&sourceUrl=&ifr=0&isSF=nosf&clicktag=&fromurl=https%3A%2F%2Fwww.rona.ca%2Fen&nomraid=true&ref=https%3A%2F%2Fwww.google.ca%2F")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println()
+
+	rs.Write(os.Stdout)
+	rs.Body.Close()
+}
+
+func TestA(t *testing.T) {
+	config, err := GetUConfigFromClientHello(extBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cache := NewLRUClientSessionCache(10)
+
+	cli := http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+			GetTLSClient: func(conn net.Conn, cfg *tls.Config) http.TLSConn {
+				cn, err := ForUHttp(conn, config, cfg)
+				if err != nil {
+					log.Println(err)
+				}
+
+				cn.config.ClientSessionCache = cache
+				return cn
+			},
+			ForceAttemptHTTP2: config.AttemptHTTP2(),
+		},
+	}
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs, err := cli.Get("https://whatwebcando.today/foreground-detection.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rs.Write(os.Stdout)
+	rs.Body.Close()
 }
